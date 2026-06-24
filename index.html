@@ -249,7 +249,6 @@ async function loadData(){
 
         alert("ไม่สามารถโหลด data.csv ได้");
     }
-    drawTree();
 }
 
 function parseCSV(csv){
@@ -374,7 +373,11 @@ function drawLine(x,y,width,height){
         return;
     }
 
-    drawFamily(root.id, 2200, 80);
+    drawFamily(root.id, 1000, 80);
+
+offsetX = -700;
+offsetY = 0;
+applyTransform();
 }
 
 function drawFamily(personId, x, y){
