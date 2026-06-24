@@ -1,53 +1,563 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <title>V3 Family Tree</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ทำเนียบวงศ์ตระกูล V3</title>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    font-family:Tahoma,sans-serif;
+    background:#f5f5f5;
+}
+
+header{
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    height:60px;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    padding:10px 15px;
+
+    background:#ffffff;
+    box-shadow:0 2px 8px rgba(0,0,0,.1);
+
+    z-index:999;
+}
+
+header h2{
+    margin:0;
+    font-size:20px;
+}
+
+.toolbar{
+    display:flex;
+    gap:5px;
+}
+
+.toolbar button{
+    padding:8px 12px;
+    border:none;
+    border-radius:8px;
+    background:#1976d2;
+    color:white;
+    font-size:18px;
+}
+
+.toolbar button:active{
+    transform:scale(.95);
+}
+
+#searchBox{
+    width:140px;
+    padding:8px;
+    border:1px solid #ccc;
+    border-radius:8px;
+}
+
+#viewport{
+    margin-top:60px;
+
+    width:100%;
+    height:calc(100vh - 60px);
+
+    overflow:hidden;
+    touch-action:none;
+
+    background:#fafafa;
+}
+
+#canvas{
+    position:relative;
+
+    width:5000px;
+    height:5000px;
+
+    transform-origin:0 0;
+}
+
+.person{
+    position:absolute;
+    text-align:center;
+}
+
+.circle{
+    width:90px;
+    height:90px;
+
+    border-radius:50%;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    color:white;
+    font-size:42px;
+
+    box-shadow:0 2px 6px rgba(0,0,0,.25);
+}
+
+.male{
+    background:#2196F3;
+}
+
+.female{
+    background:#E91E63;
+}
+
+.person-name{
+    margin-top:6px;
+    font-size:16px;
+    white-space:nowrap;
+}
+
+.heart{
+    position:absolute;
+
+    font-size:32px;
+}
+
+.line{
+    position:absolute;
+    background:#666;
+}
+
+.highlight .circle{
+    border:5px solid gold;
+}
+
+@media (max-width:600px){
+
+    header h2{
+        font-size:16px;
+    }
+
+    #searchBox{
+        width:100px;
+    }
+
+    .circle{
+        width:80px;
+        height:80px;
+        font-size:36px;
+    }
+}
+</style>
 </head>
+
 <body>
-  <h1>ทำเนียบวงศ์ตระกูล V3</h1>
-  <div id="output">กำลังโหลดข้อมูล...</div>
 
+<header>
+
+    <h2>🌳 ทำเนียบวงศ์ตระกูล</h2>
+
+    <div class="toolbar">
+
+        <input
+            type="text"
+            id="searchBox"
+            placeholder="ค้นหาชื่อ">
+
+        <button onclick="searchPerson()">
+            🔍
+        </button>
+
+        <button onclick="zoom(1.2)">
+            +
+        </button>
+
+        <button onclick="zoom(0.8)">
+            −
+        </button>
+
+        <button onclick="resetView()">
+            🔄
+        </button>
+
+    </div>
+
+</header>
+
+<div id="viewport">
+
+    <div id="canvas"></div>
+
+</div>
 <script>
-async function loadCSV() {
-  const res = await fetch('data.csv');
-  const text = await res.text();
 
-  const lines = text.trim().split("\n");
+const DATA_URL = "data.csv";
 
-  // แก้ header: ตัดช่องว่างทุกคอลัมน์
-  const headers = lines[0].split(",").map(h => h.trim());
+const canvas = document.getElementById("canvas");
+const viewport = document.getElementById("viewport");
 
-  const data = lines.slice(1).map(line => {
-    const values = line.split(",");
+let scale = 1;
+let offsetX = 0;
+let offsetY = 0;
 
-    let obj = {};
-    headers.forEach((h, i) => {
-      obj[h] = (values[i] || "").trim();
+let people = {};
+let peopleList = [];
+
+function applyTransform(){
+    canvas.style.transform =
+        `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+}
+
+function zoom(factor){
+    scale *= factor;
+
+    if(scale < 0.3) scale = 0.3;
+    if(scale > 3) scale = 3;
+
+    applyTransform();
+}
+
+function resetView(){
+    scale = 1;
+    offsetX = 0;
+    offsetY = 0;
+
+    applyTransform();
+}
+
+async function loadData(){
+
+    try{
+
+        const response = await fetch(DATA_URL);
+
+        const csv = await response.text();
+
+        parseCSV(csv);
+
+        buildPeople();
+
+        drawTree();
+
+    }catch(error){
+
+        console.error(error);
+
+        alert("ไม่สามารถโหลด data.csv ได้");
+    }
+}
+
+function parseCSV(csv){
+
+    const lines =
+        csv.trim().split(/\r?\n/);
+
+    const headers =
+        lines[0].split(",");
+
+    peopleList = [];
+
+    for(let i=1;i<lines.length;i++){
+
+        const cols =
+            lines[i].split(",");
+
+        let row = {};
+
+        headers.forEach((h,index)=>{
+
+            row[h.trim()] =
+                (cols[index] || "").trim();
+
+        });
+
+        peopleList.push(row);
+    }
+}
+
+function buildPeople(){
+
+    people = {};
+
+    peopleList.forEach(person=>{
+
+        people[person.id] = person;
+
     });
+}
+  function createPerson(person,x,y){
 
-    return obj;
-  });
+    const div =
+        document.createElement("div");
 
-  return data;
+    div.className = "person";
+
+    div.id = "person-" + person.id;
+
+    div.style.left = x + "px";
+
+    div.style.top = y + "px";
+
+    const genderClass =
+        person.gender === "ช"
+        ? "male"
+        : "female";
+
+    const icon =
+        person.gender === "ช"
+        ? "👨"
+        : "👩";
+
+    div.innerHTML = `
+        <div class="circle ${genderClass}">
+            ${icon}
+        </div>
+
+        <div class="person-name">
+            ${person.name}
+        </div>
+    `;
+
+    canvas.appendChild(div);
 }
 
-function render(data) {
-  let html = "<h2>รายชื่อทั้งหมด</h2><ul>";
+function createHeart(x,y){
 
-  data.forEach(person => {
-    html += `<li>
-      ID: ${person.id} | ชื่อ: ${person.name} |
-      พ่อ: ${person.father || "-"} |
-      แม่: ${person.mother || "-"}
-    </li>`;
-  });
+    const heart =
+        document.createElement("div");
 
-  html += "</ul>";
-  document.getElementById("output").innerHTML = html;
+    heart.className = "heart";
+
+    heart.innerHTML = "❤️";
+
+    heart.style.left = x + "px";
+
+    heart.style.top = y + "px";
+
+    canvas.appendChild(heart);
 }
 
-loadCSV().then(render);
+function drawLine(x,y,width,height){
+
+    const line =
+        document.createElement("div");
+
+    line.className = "line";
+
+    line.style.left = x + "px";
+
+    line.style.top = y + "px";
+
+    line.style.width = width + "px";
+
+    line.style.height = height + "px";
+
+    canvas.appendChild(line);
+}
+  function drawTree(){
+
+    canvas.innerHTML = "";
+
+    // หาคู่ต้นตระกูล (เภา)
+    const root =
+        Object.values(people).find(
+            p => p.name === "เภา"
+        );
+
+    if(!root){
+        alert("ไม่พบต้นตระกูลชื่อ เภา");
+        return;
+    }
+
+    drawFamily(root.id, 2200, 80);
+}
+
+function drawFamily(personId, x, y){
+
+    const person = people[personId];
+
+    if(!person) return;
+
+    createPerson(person, x, y);
+
+    const spouse =
+        people[person.spoues];
+
+    let centerX = x + 45;
+
+    if(spouse){
+
+        createHeart(x + 105, y + 25);
+
+        createPerson(
+            spouse,
+            x + 160,
+            y
+        );
+
+        centerX = x + 125;
+    }
+
+    const children =
+        Object.values(people).filter(child => {
+
+            const father =
+                child.father === person.id;
+
+            const mother =
+                spouse &&
+                child.mother === spouse.id;
+
+            return father || mother;
+        });
+
+    if(children.length === 0){
+        return;
+    }
+
+    // เส้นลงจากหัวใจ
+    drawLine(
+        centerX,
+        y + 90,
+        4,
+        50
+    );
+
+    const startX =
+        x - ((children.length - 1) * 300 / 2);
+
+    const childY =
+        y + 220;
+
+    // เส้นแนวนอน
+    drawLine(
+        startX + 45,
+        y + 140,
+        (children.length - 1) * 300,
+        4
+    );
+
+    children.forEach((child,index)=>{
+
+        const childX =
+            startX + (index * 300);
+
+        // เส้นลงหาลูก
+        drawLine(
+            childX + 45,
+            y + 140,
+            4,
+            80
+        );
+
+        drawFamily(
+            child.id,
+            childX,
+            childY
+        );
+    });
+}
+
+function searchPerson(){
+
+    const keyword =
+        document.getElementById("searchBox")
+        .value
+        .trim();
+
+    if(!keyword) return;
+
+    document
+        .querySelectorAll(".person")
+        .forEach(el=>{
+            el.classList.remove("highlight");
+        });
+
+    const person =
+        Object.values(people).find(
+            p => p.name === keyword
+        );
+
+    if(!person){
+
+        alert("ไม่พบชื่อ " + keyword);
+
+        return;
+    }
+
+    const el =
+        document.getElementById(
+            "person-" + person.id
+        );
+
+    if(!el) return;
+
+    el.classList.add("highlight");
+
+    const left =
+        parseInt(el.style.left);
+
+    const top =
+        parseInt(el.style.top);
+
+    offsetX =
+        -(left - 300);
+
+    offsetY =
+        -(top - 200);
+
+    applyTransform();
+}
+
+/* ระบบลากผัง */
+
+let dragging = false;
+let startX = 0;
+let startY = 0;
+
+viewport.addEventListener("pointerdown",e=>{
+
+    dragging = true;
+
+    startX = e.clientX;
+
+    startY = e.clientY;
+});
+
+viewport.addEventListener("pointermove",e=>{
+
+    if(!dragging) return;
+
+    offsetX +=
+        e.clientX - startX;
+
+    offsetY +=
+        e.clientY - startY;
+
+    startX = e.clientX;
+    startY = e.clientY;
+
+    applyTransform();
+});
+
+viewport.addEventListener("pointerup",()=>{
+
+    dragging = false;
+});
+
+viewport.addEventListener("pointerleave",()=>{
+
+    dragging = false;
+});
+
+/* โหลดข้อมูล */
+
+loadData();
+
 </script>
 
 </body>
