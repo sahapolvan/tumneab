@@ -1,1 +1,54 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><title>V3</title></head><body><h1>ทำเนียบวงศ์ตระกูล V3</h1><p>แทนที่ index.html เดิมด้วยไฟล์นี้</p><p>โค้ด V3 ฉบับเต็มจะพัฒนาต่อจากต้นแบบนี้</p></body></html>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>V3 Family Tree</title>
+</head>
+<body>
+  <h1>ทำเนียบวงศ์ตระกูล V3</h1>
+  <div id="output">กำลังโหลดข้อมูล...</div>
+
+<script>
+async function loadCSV() {
+  const res = await fetch('data.csv');
+  const text = await res.text();
+
+  const lines = text.trim().split("\n");
+
+  // แก้ header: ตัดช่องว่างทุกคอลัมน์
+  const headers = lines[0].split(",").map(h => h.trim());
+
+  const data = lines.slice(1).map(line => {
+    const values = line.split(",");
+
+    let obj = {};
+    headers.forEach((h, i) => {
+      obj[h] = (values[i] || "").trim();
+    });
+
+    return obj;
+  });
+
+  return data;
+}
+
+function render(data) {
+  let html = "<h2>รายชื่อทั้งหมด</h2><ul>";
+
+  data.forEach(person => {
+    html += `<li>
+      ID: ${person.id} | ชื่อ: ${person.name} |
+      พ่อ: ${person.father || "-"} |
+      แม่: ${person.mother || "-"}
+    </li>`;
+  });
+
+  html += "</ul>";
+  document.getElementById("output").innerHTML = html;
+}
+
+loadCSV().then(render);
+</script>
+
+</body>
+</html>
