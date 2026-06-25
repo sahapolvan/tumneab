@@ -452,17 +452,15 @@ function drawFamily(personId, x, y){
     }
 
     const children =
-        Object.values(people).filter(child => {
+    Object.values(people).filter(child => {
 
-            const father =
-                child.father === person.id;
+        if(spouse){
+            return child.father === person.id &&
+                   child.mother === spouse.id;
+        }
 
-            const mother =
-                spouse &&
-                child.mother === spouse.id;
-
-            return father || mother;
-        });
+        return child.father === person.id;
+    });
 
     if(children.length === 0){
         return;
@@ -493,7 +491,7 @@ function drawFamily(personId, x, y){
     children.forEach((child,index)=>{
 
         const childX =
-            startX + (index * 300);
+            startX + (index * 500);
 
         // เส้นลงหาลูก
         drawLine(
