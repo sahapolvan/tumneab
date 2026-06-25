@@ -461,6 +461,10 @@ function drawFamily(personId, x, y){
 
         return child.father === person.id;
     });
+    console.log(
+    person.name,
+    children.map(c => c.name)
+);
 
     if(children.length === 0){
         return;
