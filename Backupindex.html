@@ -1,1 +1,754 @@
+<!DOCTYPE html>  <html lang="th">  
+<head>  
+<meta charset="UTF-8">  
+<meta name="viewport" content="width=device-width, initial-scale=1.0">  
+<title>ทำเนียบวงศ์ตระกูล</title>  <style>  
+*{  
+    box-sizing:border-box;  
+}  
+  
+body{  
+    margin:0;  
+    font-family:Tahoma,sans-serif;  
+    background:#f5f5f5;  
+}  
+  
+header{  
+    position:fixed;  
+    top:0;  
+    left:0;  
+    right:0;  
+    height:60px;  
+  
+    display:flex;  
+    align-items:center;  
+    justify-content:space-between;  
+  
+    padding:10px 15px;  
+  
+    background:#ffffff;  
+    box-shadow:0 2px 8px rgba(0,0,0,.1);  
+  
+    z-index:999;  
+}  
+  
+header h2{  
+    margin:0;  
+    font-size:20px;  
+}  
+  
+.toolbar{  
+    display:flex;  
+    gap:5px;  
+}  
+  
+.toolbar button{  
+    padding:8px 12px;  
+    border:none;  
+    border-radius:8px;  
+    background:#1976d2;  
+    color:white;  
+    font-size:18px;  
+}  
+  
+.toolbar button:active{  
+    transform:scale(.95);  
+}  
+  
+#searchBox{  
+    width:140px;  
+    padding:8px;  
+    border:1px solid #ccc;  
+    border-radius:8px;  
+}  
+  
+#viewport{  
+    margin-top:60px;  
+  
+    width:100%;  
+    height:calc(100vh - 60px);  
+  
+    overflow:hidden;  
+    touch-action:none;  
+  
+    background:#fafafa;  
+}  
+  
+#canvas{  
+    position:relative;  
+  
+    width:5000px;  
+    height:5000px;  
+  
+    transform-origin:0 0;  
+}  
+  
+.person{  
+    position:absolute;  
+    text-align:center;  
+}  
+  
+.circle{  
+    width:90px;  
+    height:90px;  
+  
+    border-radius:50%;  
+  
+    display:flex;  
+    align-items:center;  
+    justify-content:center;  
+  
+    color:white;  
+    font-size:42px;  
+  
+    box-shadow:0 2px 6px rgba(0,0,0,.25);  
+}  
+  
+.male{  
+    background:#2196F3;  
+}  
+  
+.female{  
+    background:#E91E63;  
+}  
+  
+.person-name{  
+    margin-top:6px;  
+    font-size:16px;  
+    white-space:nowrap;  
+}  
+  
+.heart{  
+    position:absolute;  
+  
+    font-size:32px;  
+}  
+  
+.line{  
+    position:absolute;  
+    background:#666;  
+}  
+  
+.highlight .circle{  
+    border:5px solid gold;  
+}  
+  
+@media (max-width:600px){  
+  
+    header h2{  
+        font-size:16px;  
+    }  
+  
+    #searchBox{  
+        width:100px;  
+    }  
+  
+    .circle{  
+        width:80px;  
+        height:80px;  
+        font-size:36px;  
+    }  
+}  
+</style>  </head>  <body>  <header>  <h2>🌳 ทำเนียบวงศ์ตระกูล</h2>  
 
+<div class="toolbar">  
+
+    <input  
+        type="text"  
+        id="searchBox"  
+        placeholder="ค้นหาชื่อ">  
+
+    <button onclick="searchPerson()">  
+        🔍  
+    </button>  
+
+    <button onclick="zoom(1.2)">  
+        +  
+    </button>  
+
+    <button onclick="zoom(0.8)">  
+        −  
+    </button>  
+
+    <button onclick="resetView()">  
+        🔄  
+    </button>  
+
+</div>
+
+</header>  <div id="viewport">  <div id="canvas"></div>
+
+</div>  
+<script>  
+//แสดงรายละเอียด  
+function showPopup(person){  document.getElementById("personPopup").style.display = "flex";  
+
+document.getElementById("popName").innerText =  
+    "👤 " + person.name;  
+
+document.getElementById("popGender").innerText =  
+    "เพศ: " + (person.gender || "-");  
+
+const father = people[person.father]?.name || "-";  
+const mother = people[person.mother]?.name || "-";  
+
+document.getElementById("popParent").innerText =  
+    "พ่อ: " + father + " / แม่: " + mother;  
+
+const spouse = people[person.spoues]?.name || "-";  
+
+document.getElementById("popSpouse").innerText =  
+    "คู่สมรส: " + spouse;  
+
+const children = Object.values(people)  
+    .filter(p =>  
+        p.father == person.id ||  
+        p.mother == person.id  
+    )  
+    .map(p => p.name)  
+    .join(", ") || "-";  
+
+document.getElementById("popChildren").innerText =  
+    "ลูก: " + children;
+
+}
+
+function closePopup(){
+document.getElementById("personPopup").style.display = "none";
+}
+
+//ดึงข้อมูลจาก GitHub
+//const DATA_URL = "data.csv";
+
+//ดึงข้อมูลจากGoogle
+const DATA_URL =
+"https://docs.google.com/spreadsheets/d/e/2PACX-1vRSlNovE5Trf1x5aKnKd5aA8htogPXgQb5RYmF-Sa0c3AZwHi3Z0Ggr4SuH_guOPhGzOFh87NYmqUbs/pub?output=csv";
+
+const canvas = document.getElementById("canvas");
+const viewport = document.getElementById("viewport");
+
+let scale = 1;
+let offsetX = 0;
+let offsetY = 0;
+
+let people = {};
+let peopleList = [];
+
+function applyTransform(){
+    canvas.style.transform =
+        `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+}
+    
+function zoom(factor){
+scale *= factor;
+
+if(scale < 0.3) scale = 0.3;  
+if(scale > 3) scale = 3;  
+
+applyTransform();
+
+}
+
+function resetView(){
+scale = 1;
+offsetX = 0;
+offsetY = 0;
+
+applyTransform();
+
+}
+
+async function loadData(){
+
+try{  
+
+    const response = await fetch(DATA_URL);  
+
+    const csv = await response.text();  
+
+    parseCSV(csv);  
+
+    buildPeople();  
+
+    drawTree();  
+
+}catch(error){  
+
+    console.error(error);  
+
+    alert("ไม่สามารถโหลด data.csv ได้");  
+}
+
+}
+
+function parseCSV(csv){
+
+const lines =  
+    csv.trim().split(/\r?\n/);  
+
+const headers =  
+    lines[0].split(",");  
+
+peopleList = [];  
+
+for(let i=1;i<lines.length;i++){  
+
+    const cols =  
+        lines[i].split(",");  
+
+    let row = {};  
+
+    headers.forEach((h,index)=>{  
+
+        row[h.trim()] =  
+            (cols[index] || "").trim();  
+
+    });  
+
+    peopleList.push(row);  
+}
+
+}
+
+function buildPeople(){
+
+people = {};  
+
+peopleList.forEach(person=>{  
+
+    people[person.id] = person;  
+
+});
+
+}
+function createPerson(person,x,y){
+
+const div =  
+    document.createElement("div");  
+
+div.className = "person";  
+  div.onclick = () => {  
+showPopup(person);
+
+};
+
+div.id = "person-" + person.id;  
+
+div.style.left = x + "px";  
+
+div.style.top = y + "px";  
+
+const genderClass =  
+    person.gender === "ช"  
+    ? "male"  
+    : "female";  
+
+const icon =  
+    person.gender === "ช"  
+    ? "👨"  
+    : "👩";  
+
+div.innerHTML = `  
+    <div class="circle ${genderClass}">  
+        ${icon}  
+    </div>  
+
+    <div class="person-name">  
+        ${person.name}  
+    </div>  
+`;  
+
+canvas.appendChild(div);
+
+}
+
+function createHeart(x,y){
+
+const heart =  
+    document.createElement("div");  
+
+heart.className = "heart";  
+
+heart.innerHTML = "❤️";  
+
+heart.style.left = x + "px";  
+
+heart.style.top = y + "px";  
+
+canvas.appendChild(heart);
+
+}
+
+function drawLine(x,y,width,height){
+
+const line =  
+    document.createElement("div");  
+
+line.className = "line";  
+
+line.style.left = x + "px";  
+
+line.style.top = y + "px";  
+
+line.style.width = width + "px";  
+
+line.style.height = height + "px";  
+
+canvas.appendChild(line);
+
+}
+function drawTree(){
+
+canvas.innerHTML = "";  
+
+// หาคู่ต้นตระกูล (เภา)  
+const root =  
+    Object.values(people).find(  
+        p => p.name === "เภา"  
+    );  
+
+if(!root){  
+    alert("ไม่พบต้นตระกูลชื่อ เภา");  
+    return;  
+}  
+
+drawFamily(root.id, 1000, 80);
+
+offsetX = -700;
+offsetY = 0;
+applyTransform();
+}
+function getFamilyWidth(personId){
+
+    const person = people[personId];
+
+    if(!person) return 1;
+
+    const spouse = people[person.spoues];
+
+    const children =
+        Object.values(people).filter(child => {
+
+            return (
+                child.father == person.id ||
+                child.mother == person.id ||
+                (spouse &&
+                (
+                    child.father == spouse.id ||
+                    child.mother == spouse.id
+                ))
+            );
+
+        });
+
+    if(children.length === 0){
+        return 1;
+    }
+
+    let total = 0;
+
+    children.forEach(child => {
+
+        total += getFamilyWidth(child.id);
+
+    });
+
+    return total;
+}
+function drawFamily(personId, x, y){
+
+const person = people[personId];  
+
+if(!person) return;  
+
+createPerson(person, x, y);  
+
+const spouse =  
+    people[person.spoues];  
+
+let centerX = x + 45;  
+
+if(spouse){  
+
+    createHeart(x + 105, y + 25);  
+
+    createPerson(  
+        spouse,  
+        x + 160,  
+        y  
+    );  
+
+    centerX = x + 125;  
+}  
+
+const children =  
+    Object.values(people).filter(child => {  
+
+        const isChildOfPerson =
+    child.father === person.id ||
+    child.mother === person.id;
+
+const isChildOfSpouse =
+    spouse &&
+    (
+        child.father === spouse.id ||
+        child.mother === spouse.id
+    );
+
+return isChildOfPerson || isChildOfSpouse;
+    });  
+
+if(children.length === 0){  
+    return;  
+}  
+
+// เส้นลงจากหัวใจ  
+drawLine(  
+    centerX,  
+    y + 90,  
+    4,  
+    50  
+);  
+
+let totalWidth = 0;
+
+children.forEach(child=>{
+
+    totalWidth +=
+        getFamilyWidth(child.id);
+
+});
+
+const startX =
+    x - (totalWidth * 120);
+
+const childY =  
+    y + 220;  
+
+// เส้นแนวนอน  
+drawLine(  
+    startX + 45,  
+    y + 140,  
+    (children.length - 1) * 450,  
+    4  
+);  
+let currentX = startX;
+
+children.forEach(child=>{
+
+    const width =
+        getFamilyWidth(child.id);
+
+    const childX =
+        currentX + (width * 120);
+
+    drawLine(
+        childX + 45,
+        y + 140,
+        4,
+        80
+    );
+
+    drawFamily(
+        child.id,
+        childX,
+        childY
+    );
+
+    currentX += width * 240;
+
+});
+
+}
+
+function searchPerson(){
+
+const keyword =  
+    document.getElementById("searchBox")  
+    .value  
+    .trim();  
+
+if(!keyword) return;  
+
+document  
+    .querySelectorAll(".person")  
+    .forEach(el=>{  
+        el.classList.remove("highlight");  
+    });  
+
+const person =  
+    Object.values(people).find(  
+        p => p.name === keyword  
+    );  
+
+if(!person){  
+
+    alert("ไม่พบชื่อ " + keyword);  
+
+    return;  
+}  
+
+const el =  
+    document.getElementById(  
+        "person-" + person.id  
+    );  
+
+if(!el) return;  
+
+el.classList.add("highlight");  
+
+const left =  
+    parseInt(el.style.left);  
+
+const top =  
+    parseInt(el.style.top);  
+
+offsetX =  
+    -(left - 300);  
+
+offsetY =  
+    -(top - 200);  
+
+applyTransform();
+
+}
+
+/* ระบบลากผัง */
+
+let dragging = false;
+let startX = 0;
+let startY = 0;
+
+viewport.addEventListener("pointerdown",e=>{
+
+dragging = true;  
+
+startX = e.clientX;  
+
+startY = e.clientY;
+
+});
+
+viewport.addEventListener("pointermove",e=>{
+
+if(!dragging) return;  
+
+offsetX +=  
+    e.clientX - startX;  
+
+offsetY +=  
+    e.clientY - startY;  
+
+startX = e.clientX;  
+startY = e.clientY;  
+
+applyTransform();
+
+});
+
+viewport.addEventListener("pointerup",()=>{
+
+dragging = false;
+
+});
+
+viewport.addEventListener("pointerleave",()=>{
+
+dragging = false;
+
+});
+/* ===== Pinch Zoom สำหรับมือถือ ===== */
+
+let initialPinchDistance = null;
+let initialScale = 1;
+
+function getDistance(touch1, touch2){
+const dx = touch2.clientX - touch1.clientX;
+const dy = touch2.clientY - touch1.clientY;
+
+return Math.sqrt(dx * dx + dy * dy);
+
+}
+
+viewport.addEventListener("touchstart", (e) => {
+
+if(e.touches.length === 2){  
+     dragging = false;  
+    initialPinchDistance =  
+        getDistance(  
+            e.touches[0],  
+            e.touches[1]  
+        );  
+
+    initialScale = scale;  
+}
+
+}, { passive: false });
+
+viewport.addEventListener("touchmove", (e) => {
+
+if(e.touches.length === 2){  
+        dragging = false;  
+    e.preventDefault();  
+
+    const currentDistance =  
+        getDistance(  
+            e.touches[0],  
+            e.touches[1]  
+        );  
+
+    if(initialPinchDistance){  
+
+        scale =  
+            initialScale *  
+            (currentDistance / initialPinchDistance);  
+
+        if(scale < 0.3) scale = 0.3;  
+        if(scale > 3) scale = 3;  
+
+        applyTransform();  
+    }  
+}
+
+}, { passive: false });
+
+viewport.addEventListener("touchend", () => {
+
+initialPinchDistance = null;
+
+});
+
+/* โหลดข้อมูล */
+
+loadData();
+//กดดูรายละเอียด
+</script>
+
+<div id="personPopup" style="  
+    position:fixed;  
+    top:0;  
+    left:0;  
+    right:0;  
+    bottom:0;  
+    background:rgba(0,0,0,0.5);  
+    display:none;  
+    justify-content:center;  
+    align-items:center;  
+    z-index:9999;  
+">  
+    <div style="  
+        background:white;  
+        padding:20px;  
+        border-radius:12px;  
+        width:300px;  
+    ">  
+        <h3 id="popName"></h3>  
+        <p id="popGender"></p>  
+        <p id="popParent"></p>  
+        <p id="popSpouse"></p>  
+        <p id="popChildren"></p>  <button onclick="closePopup()">ปิด</button>  
+</div>
+
+</div>  
+</body>  
+</html>  
