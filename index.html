@@ -448,14 +448,18 @@ if(spouse){
 const children =  
     Object.values(people).filter(child => {  
 
-        const father =  
-            child.father === person.id;  
+        const isChildOfPerson =
+    child.father === person.id ||
+    child.mother === person.id;
 
-        const mother =  
-            spouse &&  
-            child.mother === spouse.id;  
+const isChildOfSpouse =
+    spouse &&
+    (
+        child.father === spouse.id ||
+        child.mother === spouse.id
+    );
 
-        return father || mother;  
+return isChildOfPerson || isChildOfSpouse;
     });  
 
 if(children.length === 0){  
