@@ -454,12 +454,12 @@ function drawFamily(personId, x, y){
     const children =
     Object.values(people).filter(child => {
 
-        if(spouse){
-            return child.father === person.id &&
-                   child.mother === spouse.id;
-        }
+        if(!spouse) return false;
 
-        return child.father === person.id;
+        return (
+            [person.id, spouse.id].includes(child.father) &&
+            [person.id, spouse.id].includes(child.mother)
+        )
     });
     console.log(
     person.name,
