@@ -418,7 +418,43 @@ offsetX = -700;
 offsetY = 0;
 applyTransform();
 }
+function getFamilyWidth(personId){
 
+    const person = people[personId];
+
+    if(!person) return 1;
+
+    const spouse = people[person.spoues];
+
+    const children =
+        Object.values(people).filter(child => {
+
+            return (
+                child.father == person.id ||
+                child.mother == person.id ||
+                (spouse &&
+                (
+                    child.father == spouse.id ||
+                    child.mother == spouse.id
+                ))
+            );
+
+        });
+
+    if(children.length === 0){
+        return 1;
+    }
+
+    let total = 0;
+
+    children.forEach(child => {
+
+        total += getFamilyWidth(child.id);
+
+    });
+
+    return total;
+}
 function drawFamily(personId, x, y){
 
 const person = people[personId];  
@@ -474,8 +510,17 @@ drawLine(
     50  
 );  
 
-const startX =  
-    x - ((children.length - 1) * 450 / 2);  
+let totalWidth = 0;
+
+children.forEach(child=>{
+
+    totalWidth +=
+        getFamilyWidth(child.id);
+
+});
+
+const startX =
+    x - (totalWidth * 120);
 
 const childY =  
     y + 220;  
@@ -487,25 +532,31 @@ drawLine(
     (children.length - 1) * 450,  
     4  
 );  
+let currentX = startX;
 
-children.forEach((child,index)=>{  
+children.forEach(child=>{
 
-    const childX =  
-        startX + (index * 450);  
+    const width =
+        getFamilyWidth(child.id);
 
-    // เส้นลงหาลูก  
-    drawLine(  
-        childX + 45,  
-        y + 140,  
-        4,  
-        80  
-    );  
+    const childX =
+        currentX + (width * 120);
 
-    drawFamily(  
-        child.id,  
-        childX,  
-        childY  
-    );  
+    drawLine(
+        childX + 45,
+        y + 140,
+        4,
+        80
+    );
+
+    drawFamily(
+        child.id,
+        childX,
+        childY
+    );
+
+    currentX += width * 240;
+
 });
 
 }
