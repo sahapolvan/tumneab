@@ -572,7 +572,7 @@ function getDistance(touch1, touch2){
 viewport.addEventListener("touchstart", (e) => {
 
     if(e.touches.length === 2){
-
+         dragging = false;
         initialPinchDistance =
             getDistance(
                 e.touches[0],
@@ -587,7 +587,7 @@ viewport.addEventListener("touchstart", (e) => {
 viewport.addEventListener("touchmove", (e) => {
 
     if(e.touches.length === 2){
-
+            dragging = false;
         e.preventDefault();
 
         const currentDistance =
