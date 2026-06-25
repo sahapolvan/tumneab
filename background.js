@@ -1,10 +1,13 @@
-const bg = document.createElement("div");
+const bg = document.createElement('div');
 
-bg.innerHTML = `
-<div class="sky"></div>
-<div class="cloud"></div>
-<div class="rice-field"></div>
-<div class="house"></div>
-`;
+bg.style.position = 'fixed';
+bg.style.top = '0';
+bg.style.left = '0';
+bg.style.width = '100%';
+bg.style.height = '100%';
+bg.style.background =
+'linear-gradient(to bottom, #87CEEB, #F3E9D2)';
+
+bg.style.zIndex = '-1';
 
 document.body.prepend(bg);
