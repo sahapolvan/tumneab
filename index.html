@@ -194,6 +194,44 @@ header h2{
 
 </div>
 <script>
+//แสดงรายละเอียด
+function showPopup(person){
+
+    document.getElementById("personPopup").style.display = "flex";
+
+    document.getElementById("popName").innerText =
+        "👤 " + person.name;
+
+    document.getElementById("popGender").innerText =
+        "เพศ: " + (person.gender || "-");
+
+    const father = people[person.father]?.name || "-";
+    const mother = people[person.mother]?.name || "-";
+
+    document.getElementById("popParent").innerText =
+        "พ่อ: " + father + " / แม่: " + mother;
+
+    const spouse = people[person.spoues]?.name || "-";
+
+    document.getElementById("popSpouse").innerText =
+        "คู่สมรส: " + spouse;
+
+    const children = Object.values(people)
+        .filter(p =>
+            p.father == person.id ||
+            p.mother == person.id
+        )
+        .map(p => p.name)
+        .join(", ") || "-";
+
+    document.getElementById("popChildren").innerText =
+        "ลูก: " + children;
+}
+
+function closePopup(){
+    document.getElementById("personPopup").style.display = "none";
+}
+    
 //ดึงข้อมูลจาก GitHub 
 //const DATA_URL = "data.csv";
     
@@ -299,6 +337,9 @@ function buildPeople(){
         document.createElement("div");
 
     div.className = "person";
+      div.onclick = () => {
+    showPopup(person);
+};
 
     div.id = "person-" + person.id;
 
@@ -624,8 +665,34 @@ viewport.addEventListener("touchend", () => {
 /* โหลดข้อมูล */
 
 loadData();
-
+//กดดูรายละเอียด
 </script>
+<div id="personPopup" style="
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    background:rgba(0,0,0,0.5);
+    display:none;
+    justify-content:center;
+    align-items:center;
+    z-index:9999;
+">
+    <div style="
+        background:white;
+        padding:20px;
+        border-radius:12px;
+        width:300px;
+    ">
+        <h3 id="popName"></h3>
+        <p id="popGender"></p>
+        <p id="popParent"></p>
+        <p id="popSpouse"></p>
+        <p id="popChildren"></p>
 
+        <button onclick="closePopup()">ปิด</button>
+    </div>
+</div>
 </body>
 </html>
