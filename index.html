@@ -400,6 +400,12 @@ line.style.height = height + "px";
 canvas.appendChild(line);
 
 }
+const H_SPACE = 320;
+const V_SPACE = 220;
+const SPOUSE_SPACE = 160;
+
+let layout = {};
+    
 function drawTree(){
 
 canvas.innerHTML = "";  
@@ -420,43 +426,7 @@ offsetX = -700;
 offsetY = 0;
 applyTransform();
 }
-function getFamilyWidth(personId){
 
-    const person = people[personId];
-
-    if(!person) return 1;
-
-    const spouse = people[person.spoues];
-
-    const children =
-        Object.values(people).filter(child => {
-
-            return (
-                child.father == person.id ||
-                child.mother == person.id ||
-                (spouse &&
-                (
-                    child.father == spouse.id ||
-                    child.mother == spouse.id
-                ))
-            );
-
-        });
-
-    if(children.length === 0){
-        return 1;
-    }
-
-    let total = 0;
-
-    children.forEach(child => {
-
-        total += getFamilyWidth(child.id);
-
-    });
-
-    return total;
-}
 function drawFamily(personId, x, y){
 
 const person = people[personId];  
@@ -574,46 +544,6 @@ children.forEach((child,index)=>{
     );
 
 });
-}
-    function layoutTree(rootId){
-
-    positions = {};
-
-    calcPosition(rootId,1000,80);
-
-    }
-function calcPosition(personId, x, y){
-
-    const person = people[personId];
-
-    if(!person) return;
-
-    positions[personId] = {
-        x: x,
-        y: y
-    };
-
-    const spouse = people[person.spoues];
-
-    const children = Object.values(people).filter(child=>{
-
-        const isChildOfPerson =
-            child.father == person.id ||
-            child.mother == person.id;
-
-        const isChildOfSpouse =
-            spouse &&
-            (
-                child.father == spouse.id ||
-                child.mother == spouse.id
-            );
-
-        return isChildOfPerson || isChildOfSpouse;
-
-    });
-
-    alert(person.name + " มีลูก " + children.length + " คน");
-
 }
 
 function searchPerson(){
