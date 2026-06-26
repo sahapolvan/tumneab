@@ -6,27 +6,25 @@ let nextLeafX = 0;
 
 function getChildren(person){
 
-    const spouse = people[person.spoues];
+    const spouses = getSpouses(person);
 
     return Object.values(people).filter(child=>{
 
-        const a =
-            child.father == person.id ||
-            child.mother == person.id;
+        if(
+            child.father==person.id ||
+            child.mother==person.id
+        ) return true;
 
-        const b =
-            spouse &&
-            (
-                child.father == spouse.id ||
-                child.mother == spouse.id
-            );
+        return spouses.some(spouse=>
 
-        return a || b;
+            child.father==spouse.id ||
+            child.mother==spouse.id
+
+        );
 
     });
 
 }
-
 function calcLayout(personId, level=0){
 
     const person = people[personId];
@@ -77,5 +75,15 @@ function layoutTree(rootId){
     nextLeafX=0;
 
     calcLayout(rootId);
+
+}
+function getSpouses(person){
+
+    if(!person.spoues) return [];
+
+    return person.spoues
+        .split("|")
+        .map(id => people[id])
+        .filter(Boolean);
 
 }
