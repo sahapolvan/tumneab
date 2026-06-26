@@ -234,6 +234,8 @@ let offsetY = 0;
 
 let people = {};
 let peopleList = [];
+let positions = {};
+let families = [];
 
 function applyTransform(){
     canvas.style.transform =
@@ -412,9 +414,8 @@ if(!root){
     alert("ไม่พบต้นตระกูลชื่อ เภา");  
     return;  
 }  
-
 drawFamily(root.id, 1000, 80);
-
+    
 offsetX = -700;
 offsetY = 0;
 applyTransform();
@@ -573,6 +574,46 @@ children.forEach((child,index)=>{
     );
 
 });
+}
+    function layoutTree(rootId){
+
+    positions = {};
+
+    calcPosition(rootId,1000,80);
+
+    }
+function calcPosition(personId, x, y){
+
+    const person = people[personId];
+
+    if(!person) return;
+
+    positions[personId] = {
+        x: x,
+        y: y
+    };
+
+    const spouse = people[person.spoues];
+
+    const children = Object.values(people).filter(child=>{
+
+        const isChildOfPerson =
+            child.father == person.id ||
+            child.mother == person.id;
+
+        const isChildOfSpouse =
+            spouse &&
+            (
+                child.father == spouse.id ||
+                child.mother == spouse.id
+            );
+
+        return isChildOfPerson || isChildOfSpouse;
+
+    });
+
+    alert(person.name + " มีลูก " + children.length + " คน");
+
 }
 
 function searchPerson(){
