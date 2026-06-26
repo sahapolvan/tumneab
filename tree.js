@@ -1,3 +1,5 @@
+let drawn = {};
+
 function drawTree() {
 
     canvas.innerHTML = "";
@@ -12,7 +14,7 @@ function drawTree() {
     }
 
     layoutTree(root.id);
-
+    drawn = {};
     drawFamily(root.id);
 
     offsetX = 100;
@@ -21,9 +23,8 @@ function drawTree() {
 }
 
 function drawFamily(personId) {
-
-    if (layout[personId]) return;
-
+    if(drawn[personId]) return;
+    
     const person = people[personId];
     if (!person) return;
 
@@ -32,7 +33,7 @@ function drawFamily(personId) {
     const x = pos.x + 300;
     const y = pos.y * LEVEL_HEIGHT + 80;
 
-    layout[personId] = true;
+    drawn[personId]=true;
 
     createPerson(person, x, y);
 
