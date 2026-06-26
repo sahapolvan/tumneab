@@ -1,56 +1,96 @@
-function createPerson(person, x, y){
+function drawTree() {
 
-    const div = document.createElement("div");
+    canvas.innerHTML = "";
 
-    div.className = "person";
-    div.id = "person-" + person.id;
+    const root = Object.values(people).find(
+        p => p.name === "เภา"
+    );
 
-    div.style.left = x + "px";
-    div.style.top = y + "px";
+    if (!root) {
+        alert("ไม่พบต้นตระกูล");
+        return;
+    }
 
-    div.onclick = () => showPopup(person);
+    layoutTree(root.id);
 
-    const genderClass =
-        person.gender === "ช" ? "male" : "female";
+    drawFamily(root.id);
 
-    const icon =
-        person.gender === "ช" ? "👨" : "👩";
-
-    div.innerHTML = `
-        <div class="circle ${genderClass}">
-            ${icon}
-        </div>
-        <div class="person-name">
-            ${person.name}
-        </div>
-    `;
-
-    canvas.appendChild(div);
+    offsetX = 100;
+    offsetY = 50;
+    applyTransform();
 }
 
-function createHeart(x,y){
+function drawFamily(personId) {
 
-    const heart=document.createElement("div");
+    if (layout[personId]) return;
 
-    heart.className="heart";
-    heart.innerHTML="❤️";
+    const person = people[personId];
+    if (!person) return;
 
-    heart.style.left=x+"px";
-    heart.style.top=y+"px";
+    const pos = layout[personId];
 
-    canvas.appendChild(heart);
-}
+    const x = pos.x + 300;
+    const y = pos.y * LEVEL_HEIGHT + 80;
 
-function drawLine(x,y,width,height){
+    layout[personId] = true;
 
-    const line=document.createElement("div");
+    createPerson(person, x, y);
 
-    line.className="line";
+    const spouse = people[person.spoues];
 
-    line.style.left=x+"px";
-    line.style.top=y+"px";
-    line.style.width=width+"px";
-    line.style.height=height+"px";
+    let centerX = x + 45;
 
-    canvas.appendChild(line);
+    if (spouse) {
+
+        createHeart(x + 105, y + 25);
+
+        createPerson(
+            spouse,
+            x + 160,
+            y
+        );
+
+        centerX = x + 125;
+    }
+
+    const children = getChildren(person);
+
+    if (children.length === 0)
+        return;
+
+    drawLine(
+        centerX,
+        y + 90,
+        4,
+        50
+    );
+
+    const first = layout[children[0].id];
+    const last = layout[children[children.length - 1].id];
+
+    const lineStart = first.x + 345;
+    const lineEnd = last.x + 345;
+
+    drawLine(
+        lineStart,
+        y + 140,
+        lineEnd - lineStart,
+        4
+    );
+
+    children.forEach(child => {
+
+        const childPos = layout[child.id];
+
+        drawLine(
+            childPos.x + 345,
+            y + 140,
+            4,
+            80
+        );
+
+        drawFamily(child.id);
+
+    });
+
 }
