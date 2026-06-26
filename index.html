@@ -279,13 +279,11 @@ try{
 
     drawTree();  
 
-}catch(error){  
+}catch(error){
 
-    console.error(error);  
+    alert(error.name + "\n\n" + error.message);
 
-    alert("ไม่สามารถโหลด data.csv ได้");  
 }
-
 }
 
 function parseCSV(csv){
