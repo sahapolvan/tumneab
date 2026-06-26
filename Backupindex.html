@@ -71,7 +71,7 @@ header h2{
     overflow:hidden;  
     touch-action:none;  
   
-    background:#fafafa;  
+    background:transparent;
 }  
   
 #canvas{  
@@ -179,7 +179,8 @@ header h2{
 </header>  <div id="viewport">  <div id="canvas"></div>
 
 </div>  
-<script>  
+    <script src="background.js"></script>
+<script>
 //แสดงรายละเอียด  
 function showPopup(person){  document.getElementById("personPopup").style.display = "flex";  
 
@@ -526,21 +527,37 @@ const childY =
     y + 220;  
 
 // เส้นแนวนอน  
-drawLine(  
-    startX + 45,  
-    y + 140,  
-    (children.length - 1) * 450,  
-    4  
-);  
-let currentX = startX;
+// คำนวณตำแหน่งลูกทั้งหมดก่อน
+let childPositions = [];
+let tempX = startX;
 
-children.forEach(child=>{
+children.forEach(child => {
 
-    const width =
-        getFamilyWidth(child.id);
+    const width = getFamilyWidth(child.id);
 
     const childX =
-        currentX + (width * 120);
+        tempX + (width * 120);
+
+    childPositions.push(childX);
+
+    tempX += width * 240;
+});
+
+// เส้นแนวนอนเชื่อมลูก
+const firstX = childPositions[0] + 45;
+const lastX =
+    childPositions[childPositions.length - 1] + 45;
+
+drawLine(
+    firstX,
+    y + 140,
+    lastX - firstX,
+    4
+);
+children.forEach((child,index)=>{
+
+    const childX =
+        childPositions[index];
 
     drawLine(
         childX + 45,
@@ -555,10 +572,7 @@ children.forEach(child=>{
         childY
     );
 
-    currentX += width * 240;
-
 });
-
 }
 
 function searchPerson(){
