@@ -1,7 +1,7 @@
 const NODE_WIDTH = 260;
 const LEVEL_HEIGHT = 220;
 
-let layoutPos = {};
+let layout = {};
 let nextLeafX = 0;
 
 function getChildren(person){
@@ -37,14 +37,14 @@ function calcLayout(personId, level=0){
 
     if(children.length==0){
 
-        layoutPos[person.id]={
+        layout[person.id]={
             x:nextLeafX,
             y:level
         };
 
         nextLeafX += NODE_WIDTH;
 
-        return layoutPos[person.id].x;
+        return layout[person.id].x;
 
     }
 
@@ -61,18 +61,18 @@ function calcLayout(personId, level=0){
 
     });
 
-    layoutPos[person.id]={
+    layout[person.id]={
         x:(first+last)/2,
         y:level
     };
 
-    return layoutPos[person.id].x;
+    return layout[person.id].x;
 
 }
 
 function layoutTree(rootId){
 
-    layoutPos={};
+    layout={};
 
     nextLeafX=0;
 
