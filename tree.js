@@ -37,22 +37,32 @@ function drawFamily(personId) {
 
     createPerson(person, x, y);
 
-    const spouse = people[person.spoues];
+    const spouses = getSpouses(person);
 
-    let centerX = x + 45;
+let centerX = x + 45;
 
-    if (spouse) {
+if (spouses.length > 0) {
 
-        createHeart(x + 105, y + 25);
+    const firstX = x + 160;
+    const lastX = x + 160 + (spouses.length - 1) * 180;
+
+    centerX = (firstX + lastX) / 2 - 35;
+
+    spouses.forEach((spouse, index) => {
+
+        const sx = x + 160 + index * 180;
+
+        createHeart(sx - 55, y + 25);
 
         createPerson(
             spouse,
-            x + 160,
+            sx,
             y
         );
 
-        centerX = x + 125;
-    }
+    });
+
+}
 
     const children = getChildren(person);
 
