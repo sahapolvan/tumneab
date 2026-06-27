@@ -22,43 +22,97 @@ function drawTree() {
     applyTransform();
 }
 
-function drawFamily(personId) {
+function drawFamily(personId){
+
     if(drawn[personId]) return;
-    
+
     const person = people[personId];
-    if (!person) return;
+    if(!person) return;
+
+    drawn[personId]=true;
 
     const pos = layout[personId];
 
     const x = pos.x + 300;
     const y = pos.y * LEVEL_HEIGHT + 80;
 
-    drawn[personId]=true;
-
-    createPerson(person, x, y);
+    createPerson(person,x,y);
 
     const spouses = getSpouses(person);
 
-let centerX = x + 45;
+    // ไม่มีคู่สมรส
+    if(spouses.length==0){
 
-if (spouses.length > 0) {
+        const children = getChildren(person);
 
-    const firstX = x + 160;
-    const lastX = x + 160 + (spouses.length - 1) * 180;
+        children.forEach(child=>{
 
-    centerX = (firstX + lastX) / 2 - 35;
+            drawFamily(child.id);
 
-    spouses.forEach((spouse, index) => {
+        });
 
-        const sx = x + 160 + index * 180;
+        return;
 
-        createHeart(sx - 55, y + 25);
+    }
+
+    spouses.forEach((spouse,index)=>{
+
+        const sx = x + 160 + (index * 220);
+
+        createHeart(
+            sx - 55,
+            y + 25
+        );
 
         createPerson(
             spouse,
             sx,
             y
         );
+
+        const centerX = (x + 45 + sx + 45)/2;
+
+        const children =
+            getChildrenOfCouple(
+                person.id,
+                spouse.id
+            );
+
+        if(children.length==0)
+            return;
+
+        drawLine(
+            centerX,
+            y + 90,
+            4,
+            50
+        );
+
+        const first = layout[children[0].id];
+        const last =
+            layout[
+                children[children.length-1].id
+            ];
+
+        drawLine(
+            first.x + 345,
+            y + 140,
+            (last.x-first.x),
+            4
+        );
+
+        children.forEach(child=>{
+
+            drawLine(
+                layout[child.id].x + 345,
+                y + 140,
+                4,
+                80
+            );
+
+            drawFamily(child.id);
+
+        });
 
     });
 
