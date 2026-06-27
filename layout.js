@@ -127,7 +127,6 @@ function getFamilyWidth(personId){
    คำนวณตำแหน่ง
 ========================== */
 
-function calcLayout(personId,level=0){
 function calcLayout(personId, level = 0){
 
     const person = people[personId];
