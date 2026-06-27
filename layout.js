@@ -27,7 +27,7 @@ function getChildren(person){
 }
 function calcLayout(personId, level=0){
 
-    const person = people[personId];
+    const children = getAllChildren(person);
 
     if(!person) return;
 
@@ -75,6 +75,33 @@ function layoutTree(rootId){
     nextLeafX=0;
 
     calcLayout(rootId);
+
+}
+function getAllChildren(person){
+
+    const spouses = getSpouses(person);
+
+    let children = [];
+
+    spouses.forEach(spouse=>{
+
+        children.push(
+            ...getChildrenOfCouple(
+                person.id,
+                spouse.id
+            )
+        );
+
+    });
+
+    // กรณีไม่มีคู่สมรส
+    if(spouses.length==0){
+
+        children = getChildren(person);
+
+    }
+
+    return children;
 
 }
 function getChildrenOfCouple(father,mother){
