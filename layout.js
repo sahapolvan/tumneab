@@ -4,127 +4,185 @@ const LEVEL_HEIGHT = 220;
 let layout = {};
 let nextLeafX = 0;
 
-function getChildren(person){
+/* ==========================
+   คืนคู่สมรสทั้งหมด
+========================== */
 
-    const spouses = getSpouses(person);
+function getSpouses(person){
+
+    if(!person || !person.spoues)
+        return [];
+
+    return person.spoues
+        .split("|")
+        .map(id => people[id])
+        .filter(Boolean);
+
+}
+
+/* ==========================
+   ลูกของคู่หนึ่ง
+========================== */
+
+function getChildrenOfCouple(id1,id2){
 
     return Object.values(people).filter(child=>{
 
-        if(
-            child.father==person.id ||
-            child.mother==person.id
-        ) return true;
+        return (
 
-        return spouses.some(spouse=>
+            (child.father==id1 &&
+             child.mother==id2)
 
-            child.father==spouse.id ||
-            child.mother==spouse.id
+            ||
+
+            (child.father==id2 &&
+             child.mother==id1)
 
         );
 
     });
 
 }
-function calcLayout(personId, level = 0){
 
-    const person = people[personId];
-    if(!person) return 0;
+/* ==========================
+   ลูกทั้งหมดของคนนี้
+========================== */
 
-    const spouses = getSpouses(person);
+function getChildren(person){
 
-    // ไม่มีคู่สมรส
-    if(spouses.length == 0){
+    let result=[];
 
-        const children = getChildren(person);
+    const spouses=getSpouses(person);
 
-        if(children.length == 0){
+    if(spouses.length){
 
-            layout[person.id] = {
-                x: nextLeafX,
-                y: level
-            };
+        spouses.forEach(spouse=>{
 
-            nextLeafX += NODE_WIDTH;
+            result.push(
 
-            return layout[person.id].x;
-        }
+                ...getChildrenOfCouple(
+                    person.id,
+                    spouse.id
+                )
 
-        let first,last;
-
-        children.forEach((child,index)=>{
-
-            const x = calcLayout(
-                child.id,
-                level + 1
             );
-
-            if(index==0) first = x;
-            last = x;
 
         });
 
-        layout[person.id] = {
-            x:(first+last)/2,
+    }
+
+    // ลูกที่ไม่มีข้อมูลคู่สมรส
+
+    Object.values(people).forEach(child=>{
+
+        if(
+
+            child.father==person.id ||
+
+            child.mother==person.id
+
+        ){
+
+            if(!result.includes(child))
+
+                result.push(child);
+
+        }
+
+    });
+
+    return result;
+
+}
+
+/* ==========================
+   ความกว้างของครอบครัว
+========================== */
+
+function getFamilyWidth(personId){
+
+    const person=people[personId];
+
+    if(!person)
+        return NODE_WIDTH;
+
+    const children=getChildren(person);
+
+    if(children.length==0)
+        return NODE_WIDTH;
+
+    let width=0;
+
+    children.forEach(child=>{
+
+        width+=getFamilyWidth(child.id);
+
+    });
+
+    return Math.max(width,NODE_WIDTH);
+
+}
+
+/* ==========================
+   คำนวณตำแหน่ง
+========================== */
+
+function calcLayout(personId,level=0){
+
+    const person=people[personId];
+
+    if(!person) return;
+
+    const children=getChildren(person);
+
+    if(children.length==0){
+
+        layout[person.id]={
+
+            x:nextLeafX,
+
             y:level
+
         };
+
+        nextLeafX+=NODE_WIDTH;
 
         return layout[person.id].x;
 
     }
 
-    // มีหลายคู่สมรส
-    let firstFamily,lastFamily;
+    let firstX=null;
+    let lastX=null;
 
-    spouses.forEach((spouse,index)=>{
+    children.forEach(child=>{
 
-        const children =
-            getChildrenOfCouple(
-                person.id,
-                spouse.id
-            );
+        const x=calcLayout(
+            child.id,
+            level+1
+        );
 
-        if(children.length==0){
+        if(firstX===null)
+            firstX=x;
 
-            if(index==0)
-                firstFamily = nextLeafX;
-
-            lastFamily = nextLeafX;
-
-            nextLeafX += NODE_WIDTH;
-
-            return;
-        }
-
-        let first,last;
-
-        children.forEach((child,i)=>{
-
-            const x =
-                calcLayout(
-                    child.id,
-                    level+1
-                );
-
-            if(i==0) first=x;
-            last=x;
-
-        });
-
-        if(index==0)
-            firstFamily = first;
-
-        lastFamily = last;
+        lastX=x;
 
     });
 
     layout[person.id]={
-        x:(firstFamily+lastFamily)/2,
+
+        x:(firstX+lastX)/2,
+
         y:level
+
     };
 
     return layout[person.id].x;
 
 }
+
+/* ==========================
+   เริ่มคำนวณผัง
+========================== */
 
 function layoutTree(rootId){
 
@@ -133,88 +191,5 @@ function layoutTree(rootId){
     nextLeafX=0;
 
     calcLayout(rootId);
-
-}
-function getAllChildren(person){
-
-    const spouses = getSpouses(person);
-
-    let children = [];
-
-    spouses.forEach(spouse=>{
-
-        children.push(
-            ...getChildrenOfCouple(
-                person.id,
-                spouse.id
-            )
-        );
-
-    });
-
-    // กรณีไม่มีคู่สมรส
-    if(spouses.length==0){
-
-        children = getChildren(person);
-
-    }
-
-    return children;
-
-}
-function getChildrenOfCouple(father,mother){
-
-    return Object.values(people).filter(child=>{
-
-        return (
-
-            (child.father==father &&
-             child.mother==mother)
-
-            ||
-
-            (child.father==mother &&
-             child.mother==father)
-
-        );
-
-    });
-
-}
-function getFamilyWidth(fatherId, motherId){
-
-    const children =
-        getChildrenOfCouple(
-            fatherId,
-            motherId
-        );
-
-    // ไม่มีลูก
-    if(children.length==0)
-        return NODE_WIDTH;
-
-    let width = 0;
-
-    children.forEach(child=>{
-
-        if(layout[child.id]){
-
-            width += NODE_WIDTH;
-
-        }
-
-    });
-
-    return Math.max(width, NODE_WIDTH);
-
-}
-function getSpouses(person){
-
-    if(!person.spoues) return [];
-
-    return person.spoues
-        .split("|")
-        .map(id => people[id])
-        .filter(Boolean);
 
 }
