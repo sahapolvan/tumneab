@@ -1,18 +1,21 @@
 // =========================
-// background.js
+// background.js (Responsive)
 // =========================
 
 const bg = document.createElement("div");
 
 bg.id = "background";
 
-bg.style.position = "fixed";
-bg.style.left = "0";
-bg.style.top = "0";
-bg.style.width = "100vw";
-bg.style.height = "100vh";
-bg.style.overflow = "hidden";
-bg.style.zIndex = "-100";
+Object.assign(bg.style, {
+    position: "fixed",
+    left: "0",
+    top: "0",
+    width: "100vw",
+    height: "100vh",
+    overflow: "hidden",
+    zIndex: "-100",
+    pointerEvents: "none"
+});
 
 document.body.prepend(bg);
 
@@ -41,13 +44,9 @@ function addLayer(src, style){
 addLayer("sky.png",{
 
     left:"0",
-
     top:"0",
-
     width:"100%",
-
     height:"100%",
-
     objectFit:"cover"
 
 });
@@ -59,9 +58,7 @@ addLayer("sky.png",{
 addLayer("mountain.png",{
 
     left:"0",
-
-    bottom:"230px",
-
+    bottom:"18%",
     width:"100%"
 
 });
@@ -70,12 +67,10 @@ addLayer("mountain.png",{
 // CLOUD
 //============================
 
-addLayer("cloud.png",{
+const cloud = addLayer("cloud.png",{
 
     left:"0",
-
-    top:"20px",
-
+    top:"2%",
     width:"100%"
 
 });
@@ -84,13 +79,11 @@ addLayer("cloud.png",{
 // TREE
 //============================
 
-addLayer("tree.png",{
+const tree = addLayer("tree.png",{
 
-    right:"0",
-
-    bottom:"170px",
-
-    height:"65%"
+    right:"2%",
+    bottom:"18%",
+    height:"55vh"
 
 });
 
@@ -98,13 +91,13 @@ addLayer("tree.png",{
 // HOUSE
 //============================
 
-addLayer("house.png",{
+const house = addLayer("house.png",{
 
-    left:"40px",
-
-    bottom:"120px",
-
-    width:"340px"
+    left:"6%",
+    bottom:"10%",
+    width:"22vw",
+    minWidth:"180px",
+    maxWidth:"420px"
 
 });
 
@@ -115,10 +108,10 @@ addLayer("house.png",{
 addLayer("rice.png",{
 
     left:"0",
-
     bottom:"0",
-
-    width:"100%"
+    width:"100%",
+    height:"28vh",
+    objectFit:"cover"
 
 });
 
@@ -128,11 +121,11 @@ addLayer("rice.png",{
 
 addLayer("pond.png",{
 
-    left:"180px",
-
-    bottom:"10px",
-
-    width:"420px"
+    left:"45%",
+    bottom:"2%",
+    width:"25vw",
+    minWidth:"180px",
+    maxWidth:"420px"
 
 });
 
@@ -140,20 +133,41 @@ addLayer("pond.png",{
 // FIREFLY
 //============================
 
-addLayer("firefly.png",{
+const firefly = addLayer("firefly.png",{
 
     left:"0",
-
     top:"0",
-
     width:"100%",
-
     height:"100%",
-
     objectFit:"cover",
-
-    pointerEvents:"none",
-
-    opacity:"0.8"
+    opacity:"0.9"
 
 });
+
+//============================
+// Responsive
+//============================
+
+function resizeScene(){
+
+    if(window.innerWidth > window.innerHeight){
+
+        // แนวนอน / คอม
+
+        house.style.width = "16vw";
+        tree.style.height = "72vh";
+
+    }else{
+
+        // มือถือแนวตั้ง
+
+        house.style.width = "26vw";
+        tree.style.height = "55vh";
+
+    }
+
+}
+
+resizeScene();
+
+window.addEventListener("resize", resizeScene);
