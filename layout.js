@@ -77,6 +77,25 @@ function layoutTree(rootId){
     calcLayout(rootId);
 
 }
+function getChildrenOfCouple(father,mother){
+
+    return Object.values(people).filter(child=>{
+
+        return (
+
+            (child.father==father &&
+             child.mother==mother)
+
+            ||
+
+            (child.father==mother &&
+             child.mother==father)
+
+        );
+
+    });
+
+}
 function getSpouses(person){
 
     if(!person.spoues) return [];
