@@ -27,12 +27,12 @@ function getChildren(person){
 }
 function calcLayout(personId, level=0){
 
-    const children = getAllChildren(person);
+    const person = people[personId];
 
     if(!person) return;
 
-    const children = getChildren(person);
-
+    const children = getAllChildren(person);
+    
     if(children.length==0){
 
         layout[person.id]={
