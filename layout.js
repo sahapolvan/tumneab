@@ -128,56 +128,96 @@ function getFamilyWidth(personId){
 ========================== */
 
 function calcLayout(personId,level=0){
+function calcLayout(personId, level = 0){
 
-    const person=people[personId];
+    const person = people[personId];
+    if(!person) return 0;
 
-    if(!person) return;
+    const spouses = getSpouses(person);
 
-    const children=getChildren(person);
+    let groups = [];
 
-    if(children.length==0){
+    // ลูกของแต่ละคู่
+    spouses.forEach(spouse=>{
+
+        const children = getChildrenOfCouple(
+            person.id,
+            spouse.id
+        );
+
+        if(children.length)
+            groups.push(children);
+
+    });
+
+    // ลูกที่ไม่มีข้อมูลคู่
+    const singleChildren = Object.values(people).filter(child=>{
+
+        return (
+            child.father == person.id ||
+            child.mother == person.id
+        ) && !spouses.some(spouse=>{
+
+            return (
+                (child.father==person.id &&
+                 child.mother==spouse.id)
+
+                ||
+
+                (child.father==spouse.id &&
+                 child.mother==person.id)
+            );
+
+        });
+
+    });
+
+    if(singleChildren.length)
+        groups.push(singleChildren);
+
+    // ไม่มีลูก
+    if(groups.length==0){
 
         layout[person.id]={
-
             x:nextLeafX,
-
             y:level
-
         };
 
-        nextLeafX+=NODE_WIDTH;
+        nextLeafX += NODE_WIDTH;
 
         return layout[person.id].x;
-
     }
 
     let firstX=null;
     let lastX=null;
 
-    children.forEach(child=>{
+    groups.forEach(group=>{
 
-        const x=calcLayout(
-            child.id,
-            level+1
-        );
+        // เว้นระยะระหว่างแต่ละครอบครัว
+        nextLeafX += NODE_WIDTH;
 
-        if(firstX===null)
-            firstX=x;
+        group.forEach(child=>{
 
-        lastX=x;
+            const x = calcLayout(
+                child.id,
+                level+1
+            );
+
+            if(firstX===null)
+                firstX=x;
+
+            lastX=x;
+
+        });
 
     });
 
     layout[person.id]={
-
         x:(firstX+lastX)/2,
-
         y:level
-
     };
 
     return layout[person.id].x;
-
 }
 
 /* ==========================
