@@ -25,42 +25,100 @@ function getChildren(person){
     });
 
 }
-function calcLayout(personId, level=0){
+function calcLayout(personId, level = 0){
 
     const person = people[personId];
+    if(!person) return 0;
 
-    if(!person) return;
+    const spouses = getSpouses(person);
 
-    const children = getAllChildren(person);
-    
-    if(children.length==0){
+    // ไม่มีคู่สมรส
+    if(spouses.length == 0){
 
-        layout[person.id]={
-            x:nextLeafX,
+        const children = getChildren(person);
+
+        if(children.length == 0){
+
+            layout[person.id] = {
+                x: nextLeafX,
+                y: level
+            };
+
+            nextLeafX += NODE_WIDTH;
+
+            return layout[person.id].x;
+        }
+
+        let first,last;
+
+        children.forEach((child,index)=>{
+
+            const x = calcLayout(
+                child.id,
+                level + 1
+            );
+
+            if(index==0) first = x;
+            last = x;
+
+        });
+
+        layout[person.id] = {
+            x:(first+last)/2,
             y:level
         };
-
-        nextLeafX += NODE_WIDTH;
 
         return layout[person.id].x;
 
     }
 
-    let first,last;
+    // มีหลายคู่สมรส
+    let firstFamily,lastFamily;
 
-    children.forEach((child,index)=>{
+    spouses.forEach((spouse,index)=>{
 
-        const x =
-            calcLayout(child.id,level+1);
+        const children =
+            getChildrenOfCouple(
+                person.id,
+                spouse.id
+            );
 
-        if(index==0) first=x;
+        if(children.length==0){
 
-        last=x;
+            if(index==0)
+                firstFamily = nextLeafX;
+
+            lastFamily = nextLeafX;
+
+            nextLeafX += NODE_WIDTH;
+
+            return;
+        }
+
+        let first,last;
+
+        children.forEach((child,i)=>{
+
+            const x =
+                calcLayout(
+                    child.id,
+                    level+1
+                );
+
+            if(i==0) first=x;
+            last=x;
+
+        });
+
+        if(index==0)
+            firstFamily = first;
+
+        lastFamily = last;
 
     });
 
     layout[person.id]={
-        x:(first+last)/2,
+        x:(firstFamily+lastFamily)/2,
         y:level
     };
 
