@@ -62,7 +62,7 @@ Object.assign(bg.style,{
     pointerEvents:"none",
 
     background:
-    "url('assets/night.jpg') center center / cover no-repeat"
+    "url('assets/night.png') center center / cover no-repeat"
 
 });
 
