@@ -123,6 +123,33 @@ function getChildrenOfCouple(father,mother){
     });
 
 }
+function getFamilyWidth(fatherId, motherId){
+
+    const children =
+        getChildrenOfCouple(
+            fatherId,
+            motherId
+        );
+
+    // ไม่มีลูก
+    if(children.length==0)
+        return NODE_WIDTH;
+
+    let width = 0;
+
+    children.forEach(child=>{
+
+        if(layout[child.id]){
+
+            width += NODE_WIDTH;
+
+        }
+
+    });
+
+    return Math.max(width, NODE_WIDTH);
+
+}
 function getSpouses(person){
 
     if(!person.spoues) return [];
