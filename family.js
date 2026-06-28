@@ -143,3 +143,50 @@ function buildGenerations(rootId){
     }
 
 }
+function buildFamilyLevels(){
+
+    // รีเซ็ต
+    families.forEach(f=>{
+
+        f.level = -1;
+
+    });
+
+    // หา Root Family
+    const roots = families.filter(f=>{
+
+        return !f.father || !f.mother;
+
+    });
+
+    roots.forEach(root=>{
+
+        setFamilyLevel(root,0);
+
+    });
+
+}
+function setFamilyLevel(family,level){
+
+    if(!family) return;
+
+    if(
+        family.level!=-1 &&
+        family.level<=level
+    ) return;
+
+    family.level = level;
+
+    const childs =
+        getChildFamilies(family);
+
+    childs.forEach(child=>{
+
+        setFamilyLevel(
+            child,
+            level+1
+        );
+
+    });
+
+}
