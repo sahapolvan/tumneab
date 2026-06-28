@@ -1,3 +1,4 @@
+const NODE_WIDTH = 260;
 const LEVEL_HEIGHT = 260;
 
 let layout = {};
@@ -6,37 +7,74 @@ function layoutTree(rootId){
 
     layout = {};
 
-    let maxWidth = 0;
+    // แบ่ง Family ตาม Level
+    const levels = {};
 
-    generations.forEach(level=>{
+    families.forEach(family=>{
 
-        let width = 0;
+        if(!levels[family.level]){
 
-        level.forEach(id=>{
+            levels[family.level] = [];
 
-            const person = people[id];
+        }
 
-            width += getPersonWidth(person);
-
-        });
-
-        if(width > maxWidth)
-            maxWidth = width;
+        levels[family.level].push(family);
 
     });
 
-    canvasWidth = maxWidth + 400;
-    canvasHeight = generations.length * LEVEL_HEIGHT + 300;
+    // เรียงจากบนลงล่าง
+    Object.keys(levels)
+        .sort((a,b)=>a-b)
+        .forEach(level=>{
 
-    resizeCanvas();
+            layoutLevel(
+                levels[level],
+                Number(level)
+            );
 
-    generations.forEach((level,row)=>{
+        });
 
-        layoutGeneration(
-            level,
-            row,
-            maxWidth
-        );
+}
+
+function layoutLevel(levelFamilies,level){
+
+    let x = 200;
+
+    const y =
+        level * LEVEL_HEIGHT + 80;
+
+    levelFamilies.forEach(family=>{
+
+        family.x = x;
+        family.y = y;
+
+        // พ่อ
+        if(family.father){
+
+            layout[family.father]={
+
+                x:x,
+
+                y:level
+
+            };
+
+        }
+
+        // แม่
+        if(family.mother){
+
+            layout[family.mother]={
+
+                x:x+180,
+
+                y:level
+
+            };
+
+        }
+
+        x += 500;
 
     });
 
