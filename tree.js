@@ -128,3 +128,84 @@ function drawCouple(person, spouse, x, y, index){
     });
 
 }
+// ==========================
+// คู่สมรส
+// ==========================
+
+function getSpouses(person){
+
+    if(!person || !person.spoues)
+        return [];
+
+    return person.spoues
+        .split("|")
+        .map(id => people[id])
+        .filter(Boolean);
+
+}
+
+// ==========================
+// ลูกของคู่สมรส
+// ==========================
+
+function getChildrenOfCouple(fatherId,motherId){
+
+    return Object.values(people).filter(child=>{
+
+        return (
+
+            (child.father == fatherId &&
+             child.mother == motherId)
+
+            ||
+
+            (child.father == motherId &&
+             child.mother == fatherId)
+
+        );
+
+    });
+
+}
+
+// ==========================
+// ลูกทั้งหมดของคน
+// ==========================
+
+function getChildren(person){
+
+    let result = [];
+
+    getSpouses(person).forEach(spouse=>{
+
+        result.push(
+
+            ...getChildrenOfCouple(
+                person.id,
+                spouse.id
+            )
+
+        );
+
+    });
+
+    Object.values(people).forEach(child=>{
+
+        if(
+
+            child.father == person.id ||
+
+            child.mother == person.id
+
+        ){
+
+            if(!result.includes(child))
+                result.push(child);
+
+        }
+
+    });
+
+    return result;
+
+}
