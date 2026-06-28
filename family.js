@@ -46,7 +46,7 @@ function buildFamilies(){
     });
 
     families = Object.values(map);
-
+console.log("Families =", families);
 }
 function getFamilyByParents(father,mother){
 
@@ -91,28 +91,18 @@ function findRootFamilies(){
 
     return families.filter(f=>{
 
-        const father =
-            people[f.father];
+        const father = people[f.father];
+        const mother = people[f.mother];
 
-        const mother =
-            people[f.mother];
+        const fatherIsRoot =
+            !father ||
+            (!father.father && !father.mother);
 
-        const fatherHasParent =
-            father &&
-            (
-                father.father ||
-                father.mother
-            );
+        const motherIsRoot =
+            !mother ||
+            (!mother.father && !mother.mother);
 
-        const motherHasParent =
-            mother &&
-            (
-                mother.father ||
-                mother.mother
-            );
-
-        return !fatherHasParent &&
-               !motherHasParent;
+        return fatherIsRoot && motherIsRoot;
 
     });
 
@@ -161,5 +151,5 @@ function setFamilyLevel(family,level){
         );
 
     });
-
+console.log("Roots =", findRootFamilies());
 }
