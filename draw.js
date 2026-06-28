@@ -1,10 +1,6 @@
-// กำหนดระยะหักลบรัศมี เพื่อให้พิกัด X, Y อยู่ตรงจุดกึ่งกลางของวงกลมพอดี
 const OFFSET_X = 45; 
 const OFFSET_Y = 45;
 
-// ==========================================
-// ฟังก์ชันหลักในการควบคุมและสั่งวาดผังเครือญาติ
-// ==========================================
 function drawTree() {
     canvas.innerHTML = "";
     canvasWidth = 0;
@@ -12,35 +8,60 @@ function drawTree() {
 
     buildFamilies();
     buildFamilyLevels();
-    layoutTree(); // ดึงการจัดแถวหน้ากระดานจาก layout.js
+    layoutTree(); 
 
-    // 1. วาดกล่องบุคคลทุกคนตามพิกัดแถวที่เรียงกันเรียบร้อย
+    // 1. วาดกล่องบุคคลทุกคนตามตำแหน่งพิกัดที่จัดกึ่งกลางสมดุลไว้แล้ว
     Object.keys(layout).forEach(personId => {
         const person = people[personId];
         const pos = layout[personId];
         if (person && pos) {
             createPerson(person, pos.x, pos.y);
-            
             if (pos.x > canvasWidth) canvasWidth = pos.x;
             if (pos.y > canvasHeight) canvasHeight = pos.y;
         }
     });
 
-    // 2. วาดระบบเส้นเชื่อมความสัมพันธ์แบบหักมุมฉากสไตล์ทำเนียบองค์กร
+    // 2. ลากเส้นแต่งงานแนวนอนและวางรูปหัวใจ ❤️ ให้คู่สมรสทุกคู่ในระบบตระกูล
+    const drewHearts = new Set();
+    Object.values(people).forEach(person => {
+        const spouseField = person.spouse || person.spoues;
+        if (spouseField) {
+            spouseField.split("|").forEach(sId => {
+                const partnerId = sId.trim();
+                if (!partnerId) return;
+
+                const pPos = layout[person.id];
+                const sPos = layout[partnerId];
+
+                if (pPos && sPos) {
+                    const heartKey = [person.id, partnerId].sort().join("-");
+                    if (!drewHearts.has(heartKey)) {
+                        // ลากเส้นแนวนอนสั้น ๆ เชื่อมระหว่างคู่รัก
+                        drawLine(pPos.x, pPos.y, sPos.x - pPos.x, 2);
+
+                        // วางหัวใจเหนือกึ่งกลางเส้นแต่งงานพอดีเป๊ะ
+                        const centerX = (pPos.x + sPos.x) / 2;
+                        const centerY = (pPos.y + sPos.y) / 2;
+                        createHeart(centerX - 16, centerY - 45);
+                        drewHearts.add(heartKey);
+                    }
+                }
+            });
+        }
+    });
+
+    // 3. ลากเส้นกิ่งความสัมพันธ์หักมุมฉาก ดิ่งตรงลงหัวโหนดลูกอย่างแม่นยำ
     if (typeof families !== "undefined") {
         families.forEach(family => {
             const fatherPos = layout[family.father];
             const motherPos = layout[family.mother];
-
+            
             let parentCenterX = 0;
             let parentCenterY = 0;
 
-            // วาดเส้นสมรสแนวนอนระหว่างคู่รัก และใส่หัวใจตรงกลาง
             if (fatherPos && motherPos) {
-                drawLine(fatherPos.x, fatherPos.y, motherPos.x - fatherPos.x, 2);
                 parentCenterX = (fatherPos.x + motherPos.x) / 2;
                 parentCenterY = fatherPos.y;
-                createHeart(parentCenterX - 16, parentCenterY - 45);
             } else if (fatherPos) {
                 parentCenterX = fatherPos.x;
                 parentCenterY = fatherPos.y;
@@ -49,27 +70,27 @@ function drawTree() {
                 parentCenterY = motherPos.y;
             }
 
-            // ลากเส้นกิ่งลงมาหาลูกๆ แบบหักมุม
+            // ลากเส้นกิ่งลงด้านล่างเฉพาะครอบครัวที่มี "ลูก" กรอกอยู่ในตารางข้อมูล
             if (family.children && family.children.length > 0 && parentCenterX !== 0) {
-                const dropY = parentCenterY + 60; // ระยะดิ่งลงมาจากพ่อแม่ก่อนจะหักเลี้ยวแนวนอน
+                const dropY = parentCenterY + 65; // ระยะดิ่งลงมาก่อนจะหักมุมแนวนอน
                 
-                // ลากเส้นดิ่งสั้นๆ ลงมาจากกึ่งกลางพ่อแม่
+                // ลากเส้นดิ่งแกนกลางลงมาจากจุดกึ่งกลางพ่อแม่
                 drawLine(parentCenterX, parentCenterY, 2, dropY - parentCenterY);
 
-                // หาพิกัดลูกคนแรกและคนสุดท้ายในระบบแถวเพื่อสร้างคานแนวนอน
+                // หาค่าพิกัด X ของลูกคนซ้ายสุดและขวาสุดในกลุ่มบ้านนี้
                 const childPositions = family.children.map(id => layout[id]).filter(Boolean);
                 if (childPositions.length > 0) {
                     const minX = Math.min(...childPositions.map(p => p.x));
                     const maxX = Math.max(...childPositions.map(p => p.x));
 
-                    // ลากคานสายใยแนวนอนเชื่อมขอบเขตกลุ่มลูก
+                    // ลากเส้นสะพานแนวนอนขึงรองรับเฉพาะกลุ่มลูกตัวเอง ไม่ลากยาวเกินขอบเขต
                     drawLine(minX, dropY, maxX - minX, 2);
 
-                    // ลากเส้นดิ่งย่อยจากคานแนวนอน ทิ่มลงหัวโหนดลูกแต่ละคนพอดี
+                    // ลากเส้นดิ่งย่อยจากสะพาน ทิ่มตรงลงกึ่งกลางหัวโหนดลูกแต่ละคนพอดีเป๊ะ ไม่เบี้ยวเอียง
                     family.children.forEach(childId => {
                         const childPos = layout[childId];
                         if (childPos) {
-                            drawLine(childPos.x, dropY, 2, childPos.y - dropY);
+                            drawLine(childPos.x, dropY, 2, childPos.y - dropY - OFFSET_Y);
                         }
                     });
                 }
@@ -77,26 +98,19 @@ function drawTree() {
         });
     }
 
-    // กำหนดตำแหน่งมุมมองหน้าจอเริ่มต้น
-    offsetX = 40;
+    // ปรับระยะขอบหน้าจอเริ่มต้น
+    offsetX = 60;
     offsetY = 40;
     applyTransform();
     if (typeof resizeCanvas === "function") resizeCanvas();
 }
 
-// ==========================================
-// ฟังก์ชันย่อยสำหรับสร้างองค์ประกอบ (DOM Element)
-// ==========================================
-
 function createPerson(person, x, y) {
     const div = document.createElement("div");
     div.className = "person";
     div.id = "person-" + person.id;
-
-    // จัดให้จุดพิกัดอยู่กึ่งกลางวงกลมพอดี
     div.style.left = (x - OFFSET_X) + "px";
     div.style.top = (y - OFFSET_Y) + "px";
-
     div.onclick = () => showPopup(person);
 
     const genderClass = person.gender === "ช" ? "male" : "female";
@@ -110,7 +124,6 @@ function createPerson(person, x, y) {
             ${person.name}
         </div>
     `;
-
     canvas.appendChild(div);
 }
 
