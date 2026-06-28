@@ -1,5 +1,5 @@
-const NODE_WIDTH = 130;    // ระยะห่างระหว่างบุคคลแต่ละคน
-const LEVEL_HEIGHT = 240;  // ระยะห่างแนวตั้งระหว่างรุ่น
+const NODE_WIDTH = 130;    // ระยะห่างซ้าย-ขวา ระหว่างคนในแถวเดียวกัน
+const LEVEL_HEIGHT = 240;  // ระยะห่างแนวตั้ง ระหว่างแถวรุ่น
 
 let layout = {};
 
@@ -7,41 +7,68 @@ function layoutTree() {
     layout = {};
     const personLevels = {};
 
-    // 1. คำนวณเจเนอเรชันล็อกตามสายเลือดจริงจากตารางข้อมูล
-    Object.values(people).forEach(person => {
-        if (person.id == "1" || person.id == "2") {
-            personLevels[person.id] = 0;
-        }
-    });
+    // 1. ค้นหาต้นตระกูลสูงสุด (ไอดี 1: เภา) เพื่อตั้งค่าเริ่มต้นเป็นรุ่น 0
+    const root = Object.values(people).find(p => p.name === "เภา" || p.id == "1");
+    if (!root) return;
+    personLevels[root.id] = 0;
 
-    for (let run = 0; run < 3; run++) {
-        Object.values(people).forEach(person => {
-            const fatherLevel = personLevels[person.father];
-            const motherLevel = personLevels[person.mother];
-            if (fatherLevel !== undefined) {
-                personLevels[person.id] = fatherLevel + 1;
-            } else if (motherLevel !== undefined) {
-                personLevels[person.id] = motherLevel + 1;
-            }
-        });
+    // หาคู่สมรสของต้นตระกูล (สวัสดิ์) ให้ล็อกอยู่รุ่น 0 ร่วมกัน
+    const rootSpouse = root.spouse || root.spoues;
+    if (rootSpouse) {
+        rootSpouse.split("|").forEach(sId => { personLevels[sId.trim()] = 0; });
     }
 
-    Object.values(people).forEach(person => {
-        if (personLevels[person.id] === undefined) {
+    // 2. ✅ ปรับปรุงใหม่: ใช้ลูป Dynamic เช็กระดับความลึกสายเลือดเรื่อย ๆ จนกว่าจะครบทุกคนในตาราง (ไม่จำกัดจำนวนรุ่น)
+    let changed = true;
+    let safetyCounter = 0;
+    
+    while (changed && safetyCounter < 20) {
+        changed = false;
+        safetyCounter++;
+
+        Object.values(people).forEach(person => {
+            // ถ้าระบุรุ่นไปแล้วให้ข้าม
+            if (personLevels[person.id] !== undefined) return;
+
+            // เช็กระดับรุ่นจาก พ่อ หรือ แม่ (ถ้าคนใดคนหนึ่งมีรุ่นแล้ว ลูกจะได้รุ่นถัดไปทันที)
+            const fatherLevel = personLevels[person.father];
+            const motherLevel = personLevels[person.mother];
+
+            if (fatherLevel !== undefined) {
+                personLevels[person.id] = fatherLevel + 1;
+                changed = true;
+            } else if (motherLevel !== undefined) {
+                personLevels[person.id] = motherLevel + 1;
+                changed = true;
+            }
+        });
+
+        // ลูปเก็บตกกลุ่ม เขย / สะใภ้ ในรุ่นนั้น ๆ ให้ดึงมาอยู่รุ่นเดียวกับคู่สมรสของตนเอง
+        Object.values(people).forEach(person => {
+            if (personLevels[person.id] !== undefined) return;
+
             const spouseField = person.spouse || person.spoues;
             if (spouseField) {
                 const spouseIds = spouseField.split("|").map(id => id.trim());
                 for (let sId of spouseIds) {
                     if (personLevels[sId] !== undefined) {
                         personLevels[person.id] = personLevels[sId];
+                        changed = true;
                         break;
                     }
                 }
             }
+        });
+    }
+
+    // ป้องกันกรณีข้อมูลหลุดโพลอย ๆ ให้ตั้งเป็นรุ่น 0 ไว้หน้าเว็บจะได้ไม่พัง
+    Object.values(people).forEach(person => {
+        if (personLevels[person.id] === undefined) {
+            personLevels[person.id] = 0;
         }
     });
 
-    // 2. จัดกลุ่มครอบครัวตามโครงสร้าง Families
+    // 3. จัดกลุ่มคนแยกตามระดับรุ่นลงแต่ละแถว
     const rows = {};
     Object.keys(personLevels).forEach(pId => {
         const gen = personLevels[pId];
@@ -49,131 +76,111 @@ function layoutTree() {
         rows[gen].push(people[pId]);
     });
 
-    // 3. วางตำแหน่งจากล่างขึ้นบนเพื่อให้รุ่นพ่อแม่จัดกึ่งกลางเหนือรุ่นลูกเสมอ
+    // หาจำนวนรุ่นทั้งหมดที่มีในระบบตารางข้อมูลตอนนี้
+    const totalLevels = Object.keys(rows).map(Number).sort((a, b) => b - a);
+    const maxLevel = totalLevels[0] || 0;
+
+    // 4. ✅ ปรับปรุงใหม่: วาดพิกัดจากล่างขึ้นบนแบบไดนามิก รองรับตั้งแต่รุ่นล่างสุดดันขึ้นไปหารุ่นบนสุด
     let currentX = 100;
-    
-    // วางรุ่นที่ 2 (รุ่นหลาน) ก่อนเพื่อเป็นฐานสเปซในการจัดกึ่งกลาง
-    if (rows[2]) {
-        const visited = new Set();
-        // วนลูปตามครอบครัวในรุ่นลูกเพื่อจัดกลุ่มหลานให้อยู่ด้วยกัน
-        families.forEach(fam => {
-            const parentLevel = personLevels[fam.father] || personLevels[fam.mother];
-            if (parentLevel === 1 && fam.children && fam.children.length > 0) {
-                
-                // วางกลุ่มลูก (รุ่นหลาน) ของครอบครัวนี้เรียงกัน
-                fam.children.forEach(childId => {
-                    const child = people[childId];
-                    if (child && !visited.has(childId)) {
-                        layout[childId] = { x: currentX, y: 2 * LEVEL_HEIGHT + 100 };
-                        visited.add(childId);
-                        currentX += NODE_WIDTH;
+    const visited = new Set();
 
-                        // ดึงคู่สมรสของหลานมานั่งติดกันทันที
-                        const spouseField = child.spouse || child.spoues;
-                        if (spouseField) {
-                            spouseField.split("|").forEach(sId => {
-                                const partnerId = sId.trim();
-                                if (people[partnerId] && !visited.has(partnerId)) {
-                                    layout[partnerId] = { x: currentX, y: 2 * LEVEL_HEIGHT + 100 };
-                                    visited.add(partnerId);
-                                    currentX += NODE_WIDTH;
-                                    
-                                    // เขยิบช่องไฟเพิ่มหลังคู่แต่งงานเพื่อแยกกลุ่มบ้าน
-                                    currentX += 30; 
-                                }
-                            });
+    for (let level = maxLevel; level >= 0; level--) {
+        const currentY = level * LEVEL_HEIGHT + 100;
+
+        if (level === maxLevel) {
+            // แถวล่างสุด (รุ่นเหลน หรือรุ่นล่าสุดในตาราง) ให้วางเรียงหน้ากระดานเพื่อขยายสเปซฐาน
+            rows[level].forEach(person => {
+                if (visited.has(person.id)) return;
+
+                layout[person.id] = { x: currentX, y: currentY };
+                visited.add(person.id);
+                currentX += NODE_WIDTH;
+
+                // ดึงคู่แต่งงานในรุ่นล่างสุดมานั่งติดกัน
+                const spouseField = person.spouse || person.spoues;
+                if (spouseField) {
+                    spouseField.split("|").forEach(sId => {
+                        const partnerId = sId.trim();
+                        if (people[partnerId] && !visited.has(partnerId)) {
+                            layout[partnerId] = { x: currentX, y: currentY };
+                            visited.add(partnerId);
+                            currentX += NODE_WIDTH;
+                            currentX += 30; // เว้นสเปซแยกกลุ่มบ้าน
                         }
-                    }
-                });
-                currentX += 60; // เว้นช่องว่างระหว่างกลุ่มบ้านหลานแต่ละสาย
-            }
-        });
-    }
+                    });
+                }
+            });
+        } else {
+            // รุ่นที่อยู่สูงขึ้นไป (พ่อแม่/ปู่ย่า) ให้คำนวณตำแหน่งจัดกึ่งกลางเหนือหัวกลุ่มลูก ๆ ของตัวเองเสมอ
+            families.forEach(fam => {
+                // ค้นหารุ่นของครอบครัวนี้
+                const famLevel = personLevels[fam.father] !== undefined ? personLevels[fam.father] : personLevels[fam.mother];
+                if (famLevel !== level) return;
 
-    // วางรุ่นที่ 1 (รุ่นลูกของเภา) โดยคำนวณให้อยู่กึ่งกลางกลุ่มลูก ๆ ของตัวเอง
-    if (rows[1]) {
-        const visited = new Set();
-        families.forEach(fam => {
-            if (fam.id === "1|2" || fam.id === "2|1") return; // ข้ามครอบครัวต้นตระกูลไปก่อน
-            
-            const father = people[fam.father];
-            const mother = people[fam.mother];
-            
-            // หาจุดกึ่งกลางจากพิกัดของลูก ๆ ที่เราวางไว้ในฐานรุ่นหลานเมื่อครู่
-            let childrenXSum = 0;
-            let validChildrenCount = 0;
-            if (fam.children) {
-                fam.children.forEach(cId => {
-                    if (layout[cId]) {
-                        childrenXSum += layout[cId].x;
-                        validChildrenCount++;
-                        // เผื่อพิกัดคู่สมรสของลูกด้วยถ้ามี
-                        const spouseField = people[cId]?.spouse || people[cId]?.spoues;
-                        if (spouseField) {
-                            spouseField.split("|").forEach(sId => {
+                const father = people[fam.father];
+                const mother = people[fam.mother];
+
+                let childrenXSum = 0;
+                let validChildrenCount = 0;
+
+                if (fam.children) {
+                    fam.children.forEach(cId => {
+                        if (layout[cId]) {
+                            childrenXSum += layout[cId].x;
+                            validChildrenCount++;
+                        }
+                        // รวมพิกัดคู่สมรสของลูกด้วยเพื่อความสมดุล
+                        const cSpouse = people[cId]?.spouse || people[cId]?.spoues;
+                        if (cSpouse) {
+                            cSpouse.split("|").forEach(sId => {
                                 if (layout[sId.trim()]) {
                                     childrenXSum += layout[sId.trim()].x;
                                     validChildrenCount++;
                                 }
                             });
                         }
+                    });
+                }
+
+                let targetCenterX = currentX;
+                if (validChildrenCount > 0) {
+                    targetCenterX = childrenXSum / validChildrenCount;
+                } else {
+                    targetCenterX = currentX;
+                    currentX += (NODE_WIDTH * 2); // ขยับเผื่อกรณีไม่มีลูก
+                }
+
+                // วางตำแหน่งพ่อแม่ให้คร่อมกึ่งกลางพอดี
+                if (father && !visited.has(father.id) && mother && !visited.has(mother.id)) {
+                    layout[father.id] = { x: targetCenterX - 70, y: currentY };
+                    layout[mother.id] = { x: targetCenterX + 70, y: currentY };
+                    visited.add(father.id);
+                    visited.add(mother.id);
+                } else {
+                    if (father && !visited.has(father.id)) {
+                        layout[father.id] = { x: targetCenterX, y: currentY };
+                        visited.add(father.id);
+                    }
+                    if (mother && !visited.has(mother.id)) {
+                        layout[mother.id] = { x: targetCenterX, y: currentY };
+                        visited.add(mother.id);
+                    }
+                }
+            });
+
+            // เก็บตกคนโสดในรุ่นนั้น ๆ ที่ไม่มีครอบครัว ให้วางต่อท้ายแถวขวา
+            if (rows[level]) {
+                rows[level].forEach(p => {
+                    if (!layout[p.id] && !visited.has(p.id)) {
+                        let maxX = 100;
+                        Object.keys(layout).forEach(id => {
+                            if (personLevels[id] === level && layout[id].x > maxX) maxX = layout[id].x;
+                        });
+                        layout[p.id] = { x: maxX + NODE_WIDTH + 50, y: currentY };
+                        visited.add(p.id);
                     }
                 });
             }
-
-            let targetCenterX = currentX;
-            if (validChildrenCount > 0) {
-                targetCenterX = childrenXSum / validChildrenCount;
-            }
-
-            // จัดวางตำแหน่งพ่อและแม่ให้อยู่คร่อมจุดกึ่งกลางใต้กลุ่มลูกพอดี
-            if (father && !visited.has(father.id) && mother && !visited.has(mother.id)) {
-                layout[father.id] = { x: targetCenterX - 70, y: 1 * LEVEL_HEIGHT + 100 };
-                layout[mother.id] = { x: targetCenterX + 70, y: 1 * LEVEL_HEIGHT + 100 };
-                visited.add(father.id);
-                visited.add(mother.id);
-            } else {
-                // ถ้าเป็นคนโสด (เช่น นายแอ้ ไอดี 11) หรือโหนดเดี่ยว
-                if (father && !visited.has(father.id)) {
-                    layout[father.id] = { x: targetCenterX, y: 1 * LEVEL_HEIGHT + 100 };
-                    visited.add(father.id);
-                }
-                if (mother && !visited.has(mother.id)) {
-                    layout[mother.id] = { x: targetCenterX, y: 1 * LEVEL_HEIGHT + 100 };
-                    visited.add(mother.id);
-                }
-            }
-        });
-
-        // เก็บตกคนที่ไม่มีครอบครัวในรุ่น 1 ให้วางต่อท้ายแถว
-        rows[1].forEach(p => {
-            if (!layout[p.id]) {
-                // หาค่า X ขวาสุดที่มีในรุ่น 1 แล้วบวกเพิ่ม
-                let maxX = 100;
-                Object.keys(layout).forEach(id => {
-                    if (personLevels[id] === 1 && layout[id].x > maxX) maxX = layout[id].x;
-                });
-                layout[p.id] = { x: maxX + NODE_WIDTH + 50, y: 1 * LEVEL_HEIGHT + 100 };
-            }
-        });
-    }
-
-    // วางรุ่นที่ 0 (ต้นตระกูล เภา-สวัสดิ์) ให้อยู่กึ่งกลางหน้าจอของรุ่นลูกทั้งหมดแบบสมดุล
-    if (rows[0]) {
-        let r1XSum = 0;
-        let r1Count = 0;
-        Object.keys(layout).forEach(id => {
-            if (personLevels[id] === 1) {
-                r1XSum += layout[id].x;
-                r1Count++;
-            }
-        });
-        
-        const midR1X = r1Count > 0 ? r1XSum / r1Count : 300;
-        const rootFather = people["1"];
-        const rootMother = people["2"];
-        
-        if (rootFather) layout[rootFather.id] = { x: midR1X - 75, y: 0 * LEVEL_HEIGHT + 100 };
-        if (rootMother) layout[rootMother.id] = { x: midR1X + 75, y: 0 * LEVEL_HEIGHT + 100 };
+        }
     }
 }
