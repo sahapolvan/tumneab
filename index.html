@@ -74,14 +74,16 @@ header h2{
     background:transparent;
 }  
   
-#canvas{  
-    position:relative;  
-  
-    width:5000px;  
-    height:5000px;  
-  
-    transform-origin:0 0;  
-}  
+#canvas{
+
+    position:relative;
+
+    min-width:100%;
+    min-height:100%;
+
+    transform-origin:0 0;
+
+}
   
 .person{  
     position:absolute;  
@@ -236,7 +238,10 @@ const viewport = document.getElementById("viewport");
 let scale = 1;
 let offsetX = 0;
 let offsetY = 0;
-
+    
+let canvasWidth = 0;
+let canvasHeight = 0;
+    
 let people = {};
 let peopleList = [];
 let positions = {};
@@ -246,6 +251,15 @@ function applyTransform(){
     canvas.style.transform =
         `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
 }
+    function resizeCanvas(){
+
+    canvas.style.width =
+        (canvasWidth + 400) + "px";
+
+    canvas.style.height =
+        (canvasHeight + 400) + "px";
+
+    }
     
 function zoom(factor){
 scale *= factor;
@@ -277,7 +291,7 @@ try{
     parseCSV(csv);  
 
     buildPeople();  
-
+buildFamilies();
     drawTree();  
 
 }catch(error){
