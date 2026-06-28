@@ -125,3 +125,73 @@ function getFamilyWidth(personId){
     );
 
 }
+// ==========================
+// คำนวณตำแหน่งของแต่ละคน
+// ==========================
+
+function calcLayout(personId, level = 0){
+
+    const person = people[personId];
+
+    if(!person)
+        return 0;
+
+    const children = getChildren(person);
+
+    // ไม่มีลูก
+    if(children.length == 0){
+
+        layout[person.id] = {
+
+            x: nextLeafX,
+            y: level
+
+        };
+
+        nextLeafX += NODE_WIDTH;
+
+        return layout[person.id].x;
+
+    }
+
+    let firstX = null;
+    let lastX = null;
+
+    children.forEach(child=>{
+
+        const x = calcLayout(
+            child.id,
+            level + 1
+        );
+
+        if(firstX === null)
+            firstX = x;
+
+        lastX = x;
+
+    });
+
+    layout[person.id] = {
+
+        x: (firstX + lastX) / 2,
+        y: level
+
+    };
+
+    return layout[person.id].x;
+
+}
+
+// ==========================
+// เริ่มคำนวณ Layout
+// ==========================
+
+function layoutTree(rootId){
+
+    layout = {};
+
+    nextLeafX = 0;
+
+    calcLayout(rootId);
+
+}
