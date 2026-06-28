@@ -1,182 +1,123 @@
-let drawnFamilies = {};
+let drawn = {};
 
 // ==========================
-// วาดต้นไม้ทั้งหมด
+// เริ่มวาดต้นไม้
 // ==========================
 
 function drawTree(){
 
     canvas.innerHTML = "";
+    drawn = {};
 
-    drawnFamilies = {};
+    const root = Object.values(people).find(
+        p => p.name === "เภา"
+    );
 
-    const roots = findRootFamilies();
-
-    if(roots.length===0){
-
+    if(!root){
         alert("ไม่พบต้นตระกูล");
-
         return;
-
     }
 
     layoutTree();
 
-    roots.forEach(family=>{
-
-        drawFamilyGroup(family);
-
-    });
+    drawPersonFamily(root.id);
 
     offsetX = 100;
     offsetY = 50;
 
     applyTransform();
+}
+
+// ==========================
+// วาดคน + ไล่ครอบครัว
+// ==========================
+
+function drawPersonFamily(personId){
+
+    if(drawn[personId]) return;
+
+    const person = people[personId];
+    if(!person) return;
+
+    drawn[personId] = true;
+
+    const pos = layout[personId];
+    if(!pos) return;
+
+    const x = pos.x + 300;
+    const y = pos.y * LEVEL_HEIGHT + 80;
+
+    createPerson(person, x, y);
+
+    const spouses = getSpouses(person);
+
+    if(spouses.length === 0){
+
+        const children = getChildren(person);
+
+        children.forEach(child=>{
+            drawPersonFamily(child.id);
+        });
+
+        return;
+    }
+
+    spouses.forEach((spouse, index)=>{
+
+        drawCouple(person, spouse, x, y, index);
+
+    });
 
 }
 
 // ==========================
-// วาด Family Group
+// วาดคู่สมรส + ลูก
 // ==========================
 
-function drawFamilyGroup(family){
+function drawCouple(person, spouse, x, y, index){
 
-    if(!family) return;
+    const sx = x + 160 + (index * 220);
 
-    if(drawnFamilies[family.id])
+    createHeart(sx - 55, y + 25);
+    createPerson(spouse, sx, y);
+
+    const centerX = (x + 45 + sx + 45) / 2;
+
+    const children = getChildrenOfCouple(person.id, spouse.id);
+
+    if(children.length === 0)
         return;
 
-    drawnFamilies[family.id]=true;
+    drawLine(centerX, y + 90, 4, 50);
 
-    const father =
-        people[family.father];
-
-    const mother =
-        people[family.mother];
-
-    const x = family.x;
-    const y = family.y;
-
-    let centerX = x;
-
-    // วาดพ่อ
-
-    if(father){
-
-        createPerson(
-            father,
-            x,
-            y
-        );
-
-        centerX = x + 45;
-
-    }
-
-    // วาดแม่
-
-    if(mother){
-
-        const motherX =
-            father ? x + 180 : x;
-
-        createPerson(
-            mother,
-            motherX,
-            y
-        );
-
-        if(father){
-
-            createHeart(
-                motherX - 55,
-                y + 25
-            );
-
-            centerX =
-                (x + 45 + motherX + 45)/2;
-
-        }else{
-
-            centerX =
-                motherX + 45;
-
-        }
-
-    }
-        // ==========================
-    // วาดลูกของ Family
-    // ==========================
-
-    if(family.children.length==0)
-        return;
-
-    drawLine(
-        centerX,
-        y + 90,
-        4,
-        50
-    );
-
-    const first =
-        layout[family.children[0]];
-
-    const last =
-        layout[
-            family.children[
-                family.children.length-1
-            ]
-        ];
+    const first = layout[children[0].id];
+    const last = layout[children[children.length - 1].id];
 
     if(first && last){
 
         drawLine(
             first.x + 345,
             y + 140,
-            last.x - first.x,
+            (last.x - first.x),
             4
         );
 
     }
 
-    family.children.forEach(id=>{
+    children.forEach(child=>{
 
-        const pos = layout[id];
+        const cpos = layout[child.id];
 
-        if(!pos) return;
+        if(!cpos) return;
 
         drawLine(
-            pos.x + 345,
+            cpos.x + 345,
             y + 140,
             4,
             80
         );
 
-        const child = people[id];
-
-        if(child){
-
-            createPerson(
-                child,
-                pos.x + 300,
-                pos.y * LEVEL_HEIGHT + 80
-            );
-
-        }
-
-        // ถ้าลูกมีครอบครัว ให้วาดต่อ
-        families.forEach(nextFamily=>{
-
-            if(
-                nextFamily.father==id ||
-                nextFamily.mother==id
-            ){
-
-                drawFamilyGroup(nextFamily);
-
-            }
-
-        });
+        drawPersonFamily(child.id);
 
     });
 
