@@ -1,101 +1,45 @@
-const NODE_WIDTH = 260;
-const LEVEL_HEIGHT = 260;
+const NODE_WIDTH = 140; // เว้นช่องไฟระหว่างบุคคลแต่ละคน
+const LEVEL_HEIGHT = 220; // ระยะห่างระหว่างรุ่น (แนวตั้ง)
 
 let layout = {};
 
 function layoutTree(){
     layout = {};
 
-    // คำนวณระดับ Family (คาดว่าฟังก์ชันนี้อยู่ในไฟล์อื่น เช่น tree.js หรือ family.js)
-    if (typeof buildFamilyLevels === "function") {
-        buildFamilyLevels();
-    }
-
-    // แยกครอบครัวตามรุ่น
+    // 1. แยกกลุ่มบุคคลออกเป็นกลุ่มตามรุ่น (Level)
     const rows = {};
-    families.forEach(f => {
-        if (!rows[f.level]) rows[f.level] = [];
-        rows[f.level].push(f);
+    
+    Object.values(people).forEach(person => {
+        // หาข้อมูลครอบครัวที่คนนี้เป็นลูกเพื่อดูระดับรุ่น
+        let personLevel = 0;
+        const parentFamily = families.find(f => f.children.includes(person.id));
+        
+        if (parentFamily && parentFamily.level !== -1) {
+            personLevel = parentFamily.level + 1;
+        } else {
+            // ถ้าไม่เจอครอบครัวพ่อแม่ ให้ดูว่าคนนี้ไปเป็นพ่อแม่ในครอบครัวไหนที่มีการตั้งระดับรุ่นไว้แล้วไหม
+            const ownFamily = families.find(f => f.father == person.id || f.mother == person.id);
+            if (ownFamily && ownFamily.level !== -1) {
+                personLevel = ownFamily.level;
+            }
+        }
+
+        if (!rows[personLevel]) rows[personLevel] = [];
+        rows[personLevel].push(person);
     });
 
-    // วางตำแหน่งแต่ละรุ่น
+    // 2. จัดระเบียบแถวหน้ากระดานเรียงคิวทีละรุ่น
     Object.keys(rows).forEach(level => {
-        layoutRow(rows[level], Number(level));
-    });
-}
+        let currentX = 100; // จุดเริ่มต้นแกน X ซ้ายสุดของแต่ละแถว
+        const currentY = Number(level) * LEVEL_HEIGHT + 100; // พิกัดแกน Y ของรุ่นนั้นๆ
 
-function layoutRow(familiesInRow, level){
-    let x = 200; // จุดเริ่มต้นแกน X ของรุ่นนั้นๆ
-    const y = level * LEVEL_HEIGHT + 80; // คำนวณพิกัด Y เป็นพิกเซลที่ถูกต้อง
-
-    familiesInRow.forEach(family => {
-        const father = people[family.father];
-        const mother = people[family.mother];
-
-        // บันทึกพิกัดของศูนย์กลางครอบครัวนี้
-        family.x = x;
-        family.y = y;
-
-        // 1. วางตำแหน่งพ่อ
-        if(father){
-            layout[father.id] = {
-                x: x,
-                y: y // ✅ แก้ไขจาก level เป็น y (พิกเซล)
+        // วนลูปวางตำแหน่งทุกคนในรุ่นนี้ต่อคิวเรียงกันไปข้างหน้า
+        rows[level].forEach(person => {
+            layout[person.id] = {
+                x: currentX,
+                y: currentY
             };
-        }
-
-        // 2. วางตำแหน่งแม่ (ห่างจากพ่อ 140px เพื่อความกระชับ หรือ 180px ตามเดิมของคุณ)
-        const spouseOffset = 140; 
-        if(mother){
-            layout[mother.id] = {
-                x: father ? x + spouseOffset : x,
-                y: y // ✅ แก้ไขจาก level เป็น y (พิกเซล)
-            };
-        }
-
-        // คำนวณจุดกึ่งกลางของพ่อแม่เพื่อใช้วางตำแหน่งลูกๆ
-        let parentCenterX = x;
-        if (father && mother) {
-            parentCenterX = x + (spouseOffset / 2);
-        }
-
-        // 3. ✅ เพิ่มระบบวางตำแหน่งลูกๆ (ที่ของเดิมขาดหายไป)
-        if (family.children && family.children.length > 0) {
-            const childWidth = 140; // ความกว้างพื้นที่ต่อลูก 1 คน
-            const totalChildrenWidth = (family.children.length - 1) * childWidth;
-            // หาจุดเริ่มต้น X ของลูกคนแรกเพื่อให้กลุ่มลูกอยู่กึ่งกลางใต้พ่อแม่พอดี
-            let startChildX = parentCenterX - (totalChildrenWidth / 2);
-            // พิกัด Y ของลูกจะอยู่ในรุ่นถัดไป ( level + 1 )
-            const childY = (level + 1) * LEVEL_HEIGHT + 80;
-
-            family.children.forEach((childId, index) => {
-                // วางลูกเฉพาะกรณีที่ลูกคนนั้นยังไม่มีตำแหน่ง (ป้องกันการทับซ้อนกรณีแต่งงานซ้ำ)
-                if (!layout[childId]) {
-                    layout[childId] = {
-                        x: startChildX + (index * childWidth),
-                        y: childY
-                    };
-                }
-            });
-        }
-
-        // คำนวณพื้นที่ครอบครัวเพื่อดันสเปซสำหรับครอบครัวถัดไปในรุ่นเดียวกัน
-        const width = getFamilyWidth(family);
-        x += width;
+            currentX += NODE_WIDTH; // ดันระยะ X ไปข้างหน้าเพื่อไม่ให้คนถัดไปมาทับซ้อน
+        });
     });
-}
-
-function getFamilyWidth(family){
-    const father = people[family.father];
-    const mother = people[family.mother];
-    const childrenCount = family.children ? family.children.length : 0;
-
-    let base = 220;
-    if(father && mother){
-        base = 320;
-    }
-
-    const childSpace = childrenCount * 140;
-    // คืนค่าความกว้างที่มากที่สุดระหว่างพื้นที่พ่อแม่ หรือพื้นที่ของลูกๆ
-    return Math.max(base, childSpace + 60);
 }
