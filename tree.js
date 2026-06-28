@@ -5,6 +5,7 @@ let drawn = {};
 // ==========================
 
 function drawTree(){
+function drawTree(){
 
     canvas.innerHTML = "";
     drawn = {};
@@ -18,8 +19,16 @@ function drawTree(){
         return;
     }
 
+    // สร้างข้อมูลครอบครัว
+    buildFamilies();
+
+    // คำนวณระดับของครอบครัว
+    buildFamilyLevels();
+
+    // คำนวณตำแหน่ง
     layoutTree();
 
+    // วาดต้นไม้
     drawPersonFamily(root.id);
 
     offsetX = 100;
@@ -27,7 +36,6 @@ function drawTree(){
 
     applyTransform();
 }
-
 // ==========================
 // วาดคน + ไล่ครอบครัว
 // ==========================
