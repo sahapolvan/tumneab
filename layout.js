@@ -33,9 +33,6 @@ function layoutTree(){
     });
 
 }
-console.log(families);
-console.log(layout);
-console.log(root);
 
 function layoutRow(familiesInRow, level){
 
