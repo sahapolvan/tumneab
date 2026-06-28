@@ -5,7 +5,7 @@ let drawn = {};
 // ==========================
 
 function drawTree(){
-
+console.log(families);
     canvas.innerHTML = "";
 
     drawn = {};
