@@ -4,208 +4,149 @@ let drawn = {};
 // เริ่มวาดต้นไม้
 // ==========================
 function drawTree(){
-
     canvas.innerHTML = "";
-    drawn = {};
+    drawn = {}; // เคลียร์สถานะการวาดบุคคล
 
-    const root = Object.values(people).find(
-        p => p.name === "เภา"
-    );
+    // ค้นหาโหนดต้นตระกูลสูงสุดตามชื่อที่ต้องการ
+    const root = Object.values(people).find(p => p.name === "เภา");
 
     if(!root){
-        alert("ไม่พบต้นตระกูล");
+        alert("ไม่พบต้นตระกูลชื่อ 'เภา' ในระบบ");
         return;
     }
 
-    // สร้างข้อมูลครอบครัว
+    // 1. จัดเตรียมโครงสร้างความสัมพันธ์และคำนวณพิกัดสเปซล่วงหน้า
     buildFamilies();
-
-    // คำนวณระดับของครอบครัว
     buildFamilyLevels();
-
-    // คำนวณตำแหน่ง
     layoutTree();
 
-    // วาดต้นไม้
+    // 2. เริ่มต้นวิ่งวาดตามสายเลือดจากโหนดราก
     drawPersonFamily(root.id);
 
+    // 3. กำหนดตำแหน่งมุมมองเริ่มต้นให้สวยงาม
     offsetX = 100;
     offsetY = 50;
-
     applyTransform();
+    
+    // อัปเดตขนาดพื้นที่แคนวาสรองรับระบบลากผัง
+    if (typeof resizeCanvas === "function") {
+        resizeCanvas();
+    }
 }
-// ==========================
-// วาดคน + ไล่ครอบครัว
-// ==========================
 
+// ==========================
+// วาดคน + ไล่สายครอบครัว
+// ==========================
 function drawPersonFamily(personId){
-
+    // ดักจับกรณีที่บุคคลนี้ถูกวาดขึ้นจอไปแล้ว เพื่อป้องกันปัญหาโหนดซ้อนทับกัน
     if(drawn[personId]) return;
 
     const person = people[personId];
     if(!person) return;
 
-    drawn[personId] = true;
-
     const pos = layout[personId];
     if(!pos) return;
 
-    const x = pos.x + 300;
-    const y = pos.y * LEVEL_HEIGHT + 80;
+    // ✅ ปรับแก้: ดึงพิกัด X, Y พิกเซลที่คำนวณเสร็จแล้วจาก Layout ตรงๆ (ไม่บวก/คูณซ้ำ)
+    const x = pos.x;
+    const y = pos.y;
 
+    // สั่งวาดกล่องบุคคลหลักลงบนแคนวาส และบันทึกสถานะ
     createPerson(person, x, y);
+    drawn[personId] = true;
 
     const spouses = getSpouses(person);
 
+    // กรณีไม่มีคู่สมรส ให้ขยับไปไล่วาดที่กลุ่มลูกโดยตรง (ถ้ามี)
     if(spouses.length === 0){
-
         const children = getChildren(person);
-
-        children.forEach(child=>{
+        children.forEach(child => {
             drawPersonFamily(child.id);
         });
-
         return;
     }
 
-    spouses.forEach((spouse, index)=>{
-
+    // มีคู่สมรส -> วาดคู่สมรสและเส้นสายใยร่วมกัน
+    spouses.forEach((spouse, index) => {
         drawCouple(person, spouse, x, y, index);
-
     });
-
 }
 
 // ==========================
-// วาดคู่สมรส + ลูก
+// วาดคู่สมรส + เส้นเชื่อมโยงลูก
 // ==========================
-
 function drawCouple(person, spouse, x, y, index){
+    // ป้องกันกรณีที่คู่สมรสเคยถูกวาดในฐานะสายเลือดหลักไปแล้ว
+    if(drawn[spouse.id]) return;
 
-    const sx = x + 160 + (index * 220);
+    // คำนวณตำแหน่งกล่องคู่สมรสให้เยื้องไปทางขวาตามลำดับ index คู่ครอง
+    const spouseOffset = 140; 
+    const sx = x + spouseOffset + (index * 60);
+    const sy = y;
 
-    createHeart(sx - 55, y + 25);
-    createPerson(spouse, sx, y);
+    // วาดไอคอนหัวใจตรงกลางระหว่างพิกัดทั้งสองคน
+    const centerX = (x + sx) / 2;
+    createHeart(centerX - 16, y - 16);
 
-    const centerX = (x + 45 + sx + 45) / 2;
+    // วาดกล่องคู่สมรสและบันทึกสถานะลงทะเบียนหน้าจอ
+    createPerson(spouse, sx, sy);
+    drawn[spouse.id] = true;
 
     const children = getChildrenOfCouple(person.id, spouse.id);
+    if(children.length === 0) return;
 
-    if(children.length === 0)
-        return;
-
-    drawLine(centerX, y + 90, 4, 50);
-
-    const first = layout[children[0].id];
-    const last = layout[children[children.length - 1].id];
-
-    if(first && last){
-
-        drawLine(
-            first.x + 345,
-            y + 140,
-            (last.x - first.x),
-            4
-        );
-
-    }
-
-    children.forEach(child=>{
-
+    // ✅ ปรับแก้: เปลี่ยนไปใช้ฟังก์ชันลากเส้นเชื่อมพิกัดอัจฉริยะ (drawLineBetweenPoints) 
+    // แทนการใช้เลขฮาร์ดโค้ดเดิม เพื่อให้เส้นยึดเกาะกึ่งกลางวัตถุพอดี
+    children.forEach(child => {
         const cpos = layout[child.id];
-
-        if(!cpos) return;
-
-        drawLine(
-            cpos.x + 345,
-            y + 140,
-            4,
-            80
-        );
-
-        drawPersonFamily(child.id);
-
+        if(cpos) {
+            // ลากเส้นเฉียงจากจุดหัวใจกึ่งกลางพ่อแม่ วิ่งตรงดิ่งไปหาจุดศูนย์กลางของลูกแต่ละคน
+            if (typeof drawLineBetweenPoints === "function") {
+                drawLineBetweenPoints(centerX, y, cpos.x, cpos.y);
+            } else {
+                drawLine(centerX, y, cpos.x - centerX, cpos.y - y);
+            }
+            
+            // วนลูปต่อเนื่องเพื่อไปไล่สายตระกูลย่อยของลูกคนนั้นๆ
+            drawPersonFamily(child.id);
+        }
     });
-
 }
-// ==========================
-// คู่สมรส
-// ==========================
 
+// ==========================
+// ฟังก์ชันดึงข้อมูลความสัมพันธ์ (Helper Functions)
+// ==========================
 function getSpouses(person){
+    // ✅ ปรับแก้: แก้ไขคำสะกดผิดจาก person.spoues เป็น person.spouse
+    if(!person || !person.spouse) return [];
 
-    if(!person || !person.spoues)
-        return [];
-
-    return person.spoues
+    return person.spouse
         .split("|")
-        .map(id => people[id])
+        .map(id => people[id.trim()])
         .filter(Boolean);
-
 }
 
-// ==========================
-// ลูกของคู่สมรส
-// ==========================
-
-function getChildrenOfCouple(fatherId,motherId){
-
-    return Object.values(people).filter(child=>{
-
+function getChildrenOfCouple(fatherId, motherId){
+    return Object.values(people).filter(child => {
         return (
-
-            (child.father == fatherId &&
-             child.mother == motherId)
-
-            ||
-
-            (child.father == motherId &&
-             child.mother == fatherId)
-
+            (child.father == fatherId && child.mother == motherId) ||
+            (child.father == motherId && child.mother == fatherId)
         );
-
     });
-
 }
-
-// ==========================
-// ลูกทั้งหมดของคน
-// ==========================
 
 function getChildren(person){
-
     let result = [];
 
-    getSpouses(person).forEach(spouse=>{
-
-        result.push(
-
-            ...getChildrenOfCouple(
-                person.id,
-                spouse.id
-            )
-
-        );
-
+    getSpouses(person).forEach(spouse => {
+        result.push(...getChildrenOfCouple(person.id, spouse.id));
     });
 
-    Object.values(people).forEach(child=>{
-
-        if(
-
-            child.father == person.id ||
-
-            child.mother == person.id
-
-        ){
-
-            if(!result.includes(child))
-                result.push(child);
-
+    Object.values(people).forEach(child => {
+        if(child.father == person.id || child.mother == person.id){
+            if(!result.includes(child)) result.push(child);
         }
-
     });
 
     return result;
-
 }
