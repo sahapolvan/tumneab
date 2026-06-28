@@ -86,63 +86,39 @@ function getChildFamilies(family){
     return result;
 
 }
+
 function findRootFamilies(){
 
     return families.filter(f=>{
 
-        return !f.father || !f.mother;
+        const father =
+            people[f.father];
+
+        const mother =
+            people[f.mother];
+
+        const fatherHasParent =
+            father &&
+            (
+                father.father ||
+                father.mother
+            );
+
+        const motherHasParent =
+            mother &&
+            (
+                mother.father ||
+                mother.mother
+            );
+
+        return !fatherHasParent &&
+               !motherHasParent;
 
     });
 
 }
 
-/* ==========================
-   Generation
-========================== */
 
-let generations = [];
-
-/* ==========================
-   สร้าง Generation
-========================== */
-
-function buildGenerations(rootId){
-
-    generations = [];
-
-    let current = [rootId];
-
-    while(current.length){
-
-        generations.push(current);
-
-        let next = [];
-
-        current.forEach(id=>{
-
-            const person = people[id];
-
-            if(!person) return;
-
-            const children = getChildren(person);
-
-            children.forEach(child=>{
-
-                if(!next.includes(child.id)){
-
-                    next.push(child.id);
-
-                }
-
-            });
-
-        });
-
-        current = next;
-
-    }
-
-}
 function buildFamilyLevels(){
 
     // รีเซ็ต
@@ -153,17 +129,14 @@ function buildFamilyLevels(){
     });
 
     // หา Root Family
-    const roots = families.filter(f=>{
+    const roots =
+    findRootFamilies();
 
-        return !f.father || !f.mother;
+roots.forEach(root=>{
 
-    });
+    setFamilyLevel(root,0);
 
-    roots.forEach(root=>{
-
-        setFamilyLevel(root,0);
-
-    });
+});
 
 }
 function setFamilyLevel(family,level){
