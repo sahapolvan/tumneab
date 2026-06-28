@@ -3,8 +3,6 @@ let drawn = {};
 // ==========================
 // เริ่มวาดต้นไม้
 // ==========================
-
-function drawTree(){
 function drawTree(){
 
     canvas.innerHTML = "";
