@@ -23,7 +23,7 @@ function drawTree(){
     }
 
     layoutTree(root.id);
-
+buildGenerations(root.id);
     drawFamily(root.id);
 
     offsetX = 100;
