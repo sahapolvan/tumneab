@@ -51,3 +51,50 @@ function buildFamilies(){
     families = Object.values(map);
 
 }
+/* ==========================
+   Generation
+========================== */
+
+let generations = [];
+
+/* ==========================
+   สร้าง Generation
+========================== */
+
+function buildGenerations(rootId){
+
+    generations = [];
+
+    let current = [rootId];
+
+    while(current.length){
+
+        generations.push(current);
+
+        let next = [];
+
+        current.forEach(id=>{
+
+            const person = people[id];
+
+            if(!person) return;
+
+            const children = getChildren(person);
+
+            children.forEach(child=>{
+
+                if(!next.includes(child.id)){
+
+                    next.push(child.id);
+
+                }
+
+            });
+
+        });
+
+        current = next;
+
+    }
+
+}
