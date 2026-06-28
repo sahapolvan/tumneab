@@ -3,79 +3,93 @@ const LEVEL_HEIGHT = 260;
 
 let layout = {};
 
-function layoutTree(rootId){
+function layoutTree(){
 
     layout = {};
 
-    // แบ่ง Family ตาม Level
-    const levels = {};
+    // คำนวณระดับ Family
+    buildFamilyLevels();
 
-    families.forEach(family=>{
+    // แยกตามรุ่น
+    const rows = {};
 
-        if(!levels[family.level]){
+    families.forEach(f=>{
 
-            levels[family.level] = [];
+        if(!rows[f.level])
+            rows[f.level]=[];
 
-        }
-
-        levels[family.level].push(family);
+        rows[f.level].push(f);
 
     });
 
-    // เรียงจากบนลงล่าง
-    Object.keys(levels)
-        .sort((a,b)=>a-b)
-        .forEach(level=>{
+    // วางแต่ละรุ่น
+    Object.keys(rows).forEach(level=>{
 
-            layoutLevel(
-                levels[level],
-                Number(level)
-            );
+        layoutRow(
+            rows[level],
+            Number(level)
+        );
 
-        });
+    });
 
 }
-
-function layoutLevel(levelFamilies,level){
+function layoutRow(familiesInRow, level){
 
     let x = 200;
 
-    const y =
-        level * LEVEL_HEIGHT + 80;
+    const y = level * LEVEL_HEIGHT + 80;
 
-    levelFamilies.forEach(family=>{
+    familiesInRow.forEach(family=>{
+
+        const father = people[family.father];
+        const mother = people[family.mother];
 
         family.x = x;
         family.y = y;
 
-        // พ่อ
-        if(family.father){
+        // วางพ่อ
+        if(father){
 
-            layout[family.father]={
-
-                x:x,
-
-                y:level
-
+            layout[father.id] = {
+                x: x,
+                y: level
             };
 
         }
 
-        // แม่
-        if(family.mother){
+        // วางแม่
+        if(mother){
 
-            layout[family.mother]={
-
-                x:x+180,
-
-                y:level
-
+            layout[mother.id] = {
+                x: x + 180,
+                y: level
             };
 
         }
 
-        x += 500;
+        // คำนวณพื้นที่ครอบครัว
+        const width = getFamilyWidth(family);
+
+        x += width;
 
     });
+
+}
+function getFamilyWidth(family){
+
+    const father = people[family.father];
+    const mother = people[family.mother];
+
+    const childrenCount = family.children.length;
+
+    let base = 220;
+
+    if(father && mother){
+        base = 320;
+    }
+
+    const childSpace = childrenCount * 140;
+
+    return Math.max(base, childSpace + 120);
 
 }
