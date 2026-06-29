@@ -85,8 +85,7 @@ if (parentCenterX !== 0) {
     // ลากเส้นดิ่งย่อยจากสะพานระนาบ ทิ่มตรงลงกึ่งกลางหัวโหนดลูก
     drawLine(childPos.x, dropY, 2, (childPos.y - OFFSET_Y) - dropY);
 }
-
-
+});
     // 3. วาดกล่องบุคคลทุกคน (ซ่อนระบบเส้นเชื่อมไว้เลเยอร์ด้านหลังโหนดคน)
     Object.keys(layout).forEach(personId => {
         const person = people[personId];
