@@ -8,9 +8,9 @@ function drawTree() {
 
     buildFamilies();
     buildFamilyLevels();
-    layoutTree(); // อ้างอิงพิกัดจัดแถวจาก layout.js
+    layoutTree(); 
 
-    // 1. วาดกล่องบุคคลทุกคนตามตำแหน่งพิกัดที่ถูกต้อง
+    // 1. วาดกล่องบุคคล
     Object.keys(layout).forEach(personId => {
         const person = people[personId];
         const pos = layout[personId];
@@ -21,7 +21,7 @@ function drawTree() {
         }
     });
 
-    // 2. วาดรูปหัวใจ ❤️ เชื่อมคู่สมรสทุกคู่
+    // 2. วาดเส้นสมรสและหัวใจ ❤️ 
     const drewHearts = new Set();
     Object.values(people).forEach(person => {
         const spouseField = person.spouse || person.spoues;
@@ -36,10 +36,7 @@ function drawTree() {
                 if (pPos && sPos) {
                     const heartKey = [person.id, partnerId].sort().join("-");
                     if (!drewHearts.has(heartKey)) {
-                        // ลากเส้นแต่งงานสั้น ๆ ระหว่างคู่สมรส
                         drawLine(pPos.x, pPos.y, sPos.x - pPos.x, 2);
-
-                        // วางหัวใจตรงกลางเหนือเส้นแต่งงาน
                         const centerX = (pPos.x + sPos.x) / 2;
                         const centerY = (pPos.y + sPos.y) / 2;
                         createHeart(centerX - 16, centerY - 45);
@@ -50,17 +47,15 @@ function drawTree() {
         }
     });
 
-    // 3. ✅ ปรับปรุงใหม่: ลากเส้นกิ่งก้านสายสัมพันธ์หักมุมฉากแบบแม่นยำสูง (อิงตามหัวโหนดลูกจริง)
+    // 3. ✅ ปรับปรุงใหม่: ลากเส้นแยกสะพานเฉพาะครอบครัว ป้องกันเส้นทับกันตรงกลาง
     if (typeof families !== "undefined") {
         families.forEach(family => {
-            // หาตำแหน่งของพ่อและแม่
             const fatherPos = layout[family.father];
             const motherPos = layout[family.mother];
             
             let parentCenterX = 0;
             let parentCenterY = 0;
 
-            // หาจุดกึ่งกลางระหว่างคู่รักเพื่อเป็นจุดปล่อยเส้นดิ่งหลักลงมา
             if (fatherPos && motherPos) {
                 parentCenterX = (fatherPos.x + motherPos.x) / 2;
                 parentCenterY = fatherPos.y;
@@ -72,34 +67,29 @@ function drawTree() {
                 parentCenterY = motherPos.y;
             }
 
-            // ถ้าครอบครัวนี้มีลูก ให้ปล่อยเส้นกิ่งหักมุมฉาก
             if (family.children && family.children.length > 0 && parentCenterX !== 0) {
-                
-                // ตรวจสอบพิกัดของลูกทุกคนที่มีอยู่ใน layout จริง
                 const childPositions = family.children.map(id => layout[id]).filter(Boolean);
                 
                 if (childPositions.length > 0) {
-                    // ระยะดิ่งลงมาจากแถวพ่อแม่ (กึ่งกลางระหว่างแถวพอดี)
-                    const dropY = parentCenterY + 110; 
+                    // ระยะหักเลี้ยวแนวนอนดิ่งลงมา 90px (ไม่ยาวจนทับรุ่นถัดไป)
+                    const dropY = parentCenterY + 90; 
 
-                    // 1. ลากเส้นดิ่งแกนหลักลงมาจากจุดกึ่งกลางพ่อแม่ มาพักที่ระดับ dropY
+                    // 1. ลากเส้นดิ่งจากกึ่งกลางพ่อแม่ลงมาพักที่คาน
                     drawLine(parentCenterX, parentCenterY, 2, dropY - parentCenterY);
 
-                    // 2. หาค่าพิกัด X ซ้ายสุด และ ขวาสุด ของกลุ่มลูก ๆ ในครอบครัวนี้
+                    // 2. หาขอบเขตลูกซ้ายสุดและขวาสุดเฉพาะของครอบครัวนี้
                     const minX = Math.min(...childPositions.map(p => p.x));
                     const maxX = Math.max(...childPositions.map(p => p.x));
 
-                    // 3. ขึงสะพานเส้นแนวนอนเชื่อมระหว่างขอบเขตลูกซ้ายสุดไปขวาสุดพอดีเป๊ะ (ไม่ลากยาวเกินไปหาบ้านอื่น)
-                    // และเชื่อมจุดปล่อยแกนหลักเข้ากับสะพานแนวนอนนี้
+                    // 3. ขึงสะพานแนวนอนเฉพาะขอบเขตลูกของตัวเอง (เส้นจะไม่วิ่งไปปนกับบ้านอื่นตรงกลางจอ)
                     const bridgeLeft = Math.min(minX, parentCenterX);
                     const bridgeRight = Math.max(maxX, parentCenterX);
                     drawLine(bridgeLeft, dropY, bridgeRight - bridgeLeft, 2);
 
-                    // 4. ลากเส้นดิ่งย่อยจากสะพานแนวนอน ทิ่มตรงลงกึ่งกลางหัวโหนดลูกแต่ละคนพอดีเป๊ะ
+                    // 4. ลากเส้นดิ่งย่อยจากคาน ทิ่มลงกึ่งกลางหัวโหนดลูกแต่ละคนพอดีเป๊ะ
                     family.children.forEach(childId => {
                         const childPos = layout[childId];
                         if (childPos) {
-                            // ลากจากระดับ dropY ดิ่งลงไปหาตำแหน่งหัวโหนดลูก (Y - OFFSET_Y)
                             drawLine(childPos.x, dropY, 2, (childPos.y - OFFSET_Y) - dropY);
                         }
                     });
@@ -108,16 +98,13 @@ function drawTree() {
         });
     }
 
-    // ตั้งค่าขอบและมุมมองแคนวาสเริ่มต้น
     offsetX = 60;
     offsetY = 40;
     applyTransform();
     if (typeof resizeCanvas === "function") resizeCanvas();
 }
 
-// ==========================================
-// ฟังก์ชันย่อยสำหรับสร้างองค์ประกอบ (DOM Element)
-// ==========================================
+// ฟังก์ชันย่อยคงเดิม
 function createPerson(person, x, y) {
     const div = document.createElement("div");
     div.className = "person";
@@ -125,18 +112,9 @@ function createPerson(person, x, y) {
     div.style.left = (x - OFFSET_X) + "px";
     div.style.top = (y - OFFSET_Y) + "px";
     div.onclick = () => showPopup(person);
-
     const genderClass = person.gender === "ช" ? "male" : "female";
     const icon = person.gender === "ช" ? "👨" : "👩";
-
-    div.innerHTML = `
-        <div class="circle ${genderClass}">
-            ${icon}
-        </div>
-        <div class="person-name">
-            ${person.name}
-        </div>
-    `;
+    div.innerHTML = `<div class="circle ${genderClass}">${icon}</div><div class="person-name">${person.name}</div>`;
     canvas.appendChild(div);
 }
 
