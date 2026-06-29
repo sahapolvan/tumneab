@@ -38,7 +38,7 @@ function layoutTree() {
         });
     }
 
-    // 2. ฟังก์ชันแบ่งโซนความกว้าง (คำนวณพื้นที่ที่แต่ละสายบ้านต้องใช้ล่วงหน้าจากล่างขึ้นบน)
+    // 2. ✅ ปรับปรุงใหม่: ฟังก์ชันคำนวณพื้นที่ความกว้างโซน (นับคู่สมรสทุกคนละเอียด ป้องกันคนซ้อนกัน)
     const subtreeWidths = {};
     function calculateSubtreeWidth(personId) {
         if (subtreeWidths[personId]) return subtreeWidths[personId];
@@ -46,31 +46,36 @@ function layoutTree() {
         const person = people[personId];
         if (!person) return NODE_WIDTH;
 
-        // ค้นหาครอบครัวที่คนนี้เป็นพ่อหรือแม่ เพื่อดูว่ามีลูก ๆ กี่คน
+        // นับจำนวนเก้าอี้ที่ตัวเองและคู่สมรสทั้งหมดต้องใช้ (เช่น แม้ว + เมีย 3 คน = 4 เก้าอี้)
+        let selfWidth = NODE_WIDTH;
+        const spouseField = person.spouse || person.spoues;
+        if (spouseField && spouseField.trim()) {
+            const spouseCount = spouseField.split("|").filter(id => id.trim()).length;
+            selfWidth += (spouseCount * NODE_WIDTH);
+        }
+
+        // ค้นหาครอบครัวย่อยด้านล่างเพื่อดูพื้นที่ของลูกหลาน
         const ownFamily = families.find(f => f.father == personId || f.mother == personId);
         
-        // ถ้าคนนี้เป็นคนโสด ไม่มีลูก พื้นที่ของเขาคือขนาดโหนดปกติ
+        // ถ้าไม่มีลูก พื้นที่โซนบ้านคือขนาดของตัวเองและคู่สมรสทั้งหมด
         if (!ownFamily || !ownFamily.children || ownFamily.children.length === 0) {
-            let selfWidth = NODE_WIDTH;
-            // ถ้ามีคู่สมรส ให้บวกพื้นที่คู่สมรสเพิ่มเข้าไปในโซนบ้านด้วย
-            const spouseField = person.spouse || person.spoues;
-            if (spouseField && spouseField.trim()) selfWidth += NODE_WIDTH;
             subtreeWidths[personId] = selfWidth;
             return selfWidth;
         }
 
-        // ถ้ามีลูก ให้หาขนาดพื้นที่รวมของลูกหลานทุกคนในสายบ้านนี้ลึกซึ้งลงไปด้านล่าง
+        // ถ้ามีลูก ให้คำนวณพื้นที่ของสายลูกหลานทุกคนรวมกันลึกลงไป
         let childrenTotalWidth = 0;
         ownFamily.children.forEach(childId => {
             childrenTotalWidth += calculateSubtreeWidth(childId);
         });
 
-        // โซนของบ้านนี้จะกว้างเท่ากับขนาดพื้นที่ทั้งหมดที่ลูกหลานใช้รวมกัน
-        subtreeWidths[personId] = Math.max(NODE_WIDTH * 2, childrenTotalWidth);
-        return subtreeWidths[personId];
+        // ✅ เพิ่มความกว้างเผื่อและช่องว่างกั้นระหว่างขอบบ้าน (Buffer) เพื่อไม่ให้คนแถว 3 วิ่งไปทับบ้านข้าง ๆ
+        const finalWidth = Math.max(selfWidth, childrenTotalWidth) + 40;
+        subtreeWidths[personId] = finalWidth;
+        return finalWidth;
     }
 
-    // 3. ✅ ตรรกะใหม่ตามแนวคิดน้า: วางตำแหน่งแบบ "แบ่งโซนล็อกพื้นที่ยึดตามระยะลูกตัวเอง"
+    // 3. วางตำแหน่งแบบล็อกพื้นที่ตามขนาดโซนยึดจากระยะลูกหลานจริง
     const visited = new Set();
 
     function layoutPersonAndFamily(personId, startX, level) {
@@ -82,13 +87,22 @@ function layoutTree() {
         const currentY = level * LEVEL_HEIGHT + 100;
         const totalZoneWidth = subtreeWidths[personId] || NODE_WIDTH;
 
-        // วางกล่องตัวหลักไว้ตรงกึ่งกลางของ "โซนพื้นที่บ้านตัวเอง"
+        // วางกล่องตัวหลักไว้ในพื้นที่โซนของตัวเอง
         let myX = startX + (totalZoneWidth / 2) - (NODE_WIDTH / 2);
+        
+        // ดักจับและคัดกรองพิกัดกรณีแต่งงานซ้ำหลายคน ไม่ให้พิกัดตัวพ่อ/แม่เบี้ยว
+        const spouseField = person.spouse || person.spoues;
+        let totalSpouseCount = 0;
+        if (spouseField && spouseField.trim()) {
+            totalSpouseCount = spouseField.split("|").filter(id => id.trim()).length;
+            // ขยับตัวหลักไปทางซ้ายนิดนึงเพื่อให้กลุ่มเมีย ๆ นั่งเรียงต่อท้ายทางขวาได้สมดุลกึ่งกลางโซน
+            myX = myX - ((totalSpouseCount * NODE_WIDTH) / 2);
+        }
+
         layout[personId] = { x: myX, y: currentY };
         visited.add(personId);
 
-        // ตรวจสอบคู่สมรส (เขย/สะใภ้) ดึงมานั่งประกบข้างตัวหลักทันที
-        const spouseField = person.spouse || person.spoues;
+        // วางกล่องคู่สมรสทุกคนเรียงต่อคิวข้างตัวหลักยาวไปทางขวา
         let spouseOffset = 0;
         if (spouseField) {
             spouseField.split("|").forEach(sId => {
@@ -102,29 +116,29 @@ function layoutTree() {
             });
         }
 
-        // วางตำแหน่งกลุ่มลูก ๆ ให้อยู่ภายในกรอบโซนขอบเขตของพ่อแม่พอดีเป๊ะ ไม่วิ่งข้ามไปปนบ้านอื่น
+        // ส่งต่อกรอบพื้นที่แบ่งโซนลงไปให้รุ่นลูกหลานด้านล่างอย่างเที่ยงตรง
         const ownFamily = families.find(f => f.father == personId || f.mother == personId);
         if (ownFamily && ownFamily.children && ownFamily.children.length > 0) {
-            let childStartX = startX;
+            // ปรับจุดเริ่มวาดของลูกให้อยู่ในขอบกรอบโซนบ้านพ่อแม่พอดี
+            let childStartX = startX + (totalZoneWidth - (ownFamily.children.reduce((sum, cId) => sum + (subtreeWidths[cId] || NODE_WIDTH), 0))) / 2;
+            
             ownFamily.children.forEach(childId => {
                 const childWidth = subtreeWidths[childId] || NODE_WIDTH;
-                // ส่งต่อไปคำนวณในรุ่นถัดไป (Level + 1) โดยจำกัดพื้นที่ให้อยู่ในโซนย่อย childStartX
                 layoutPersonAndFamily(childId, childStartX, level + 1);
-                childStartX += childWidth; // ขยับกรอบโซนให้ลูกคนถัดไป
+                childStartX += childWidth;
             });
         }
     }
 
-    // 4. สั่งรันคำนวณพื้นที่โซนตระกูลทั้งหมด
+    // 4. สั่งเริ่มระบบประมวลผลขนาดพื้นที่โซนรายบุคคล
     calculateSubtreeWidth("1");
 
-    // สั่งเริ่มต้นกระจายโซนตั้งแต่ "เภา" (ไอดี 1) เป็นหลัก ตั้งพิกัดซ้ายสุดที่ X = 100
+    // วางตำแหน่งสายตระกูลทั้งหมดเริ่มจาก "เภา" (ไอดี 1) ขึงพื้นที่ซ้ายสุดที่พิกัด X = 100
     layoutPersonAndFamily("1", 100, 1);
 
-    // ดึงต้นตระกูลสูงสุด (เภา-สวัสดิ์) รุ่น 0 ขึ้นไปจัดวางตรงกึ่งกลางเหนือโซนลูก ๆ ทั้งหมดให้ออกมาสมดุลสวยงาม
+    // ล็อกตำแหน่งประธานสูงสุด "เภา-สวัสดิ์" (รุ่น 0) ให้อยู่กึ่งกลางเหนือกลุ่มโซนลูกหลานทั้งหมดอย่างสมดุล
     const rootFamily = families.find(f => (f.father == "1" && f.mother == "2") || (f.father == "2" && f.mother == "1"));
     if (rootFamily && layout["1"]) {
-        // หาจุดกึ่งกลางของรุ่นลูกทั้งหมดเพื่อล็อกตำแหน่งปู่ย่าให้สมดุล
         let childrenXSum = 0;
         let childrenCount = 0;
         rootFamily.children.forEach(cId => {
@@ -139,7 +153,7 @@ function layoutTree() {
         layout["2"] = { x: rootCenterX + 75, y: 100 };
     }
 
-    // เก็บตกคนโสดหรือคนที่ข้อมูลตกหล่นให้ไปวางต่อท้ายแถวกันผังพัง
+    // เก็บตกคนโสดหรือข้อมูลหลุดโพลอย ๆ
     Object.values(people).forEach(person => {
         if (!layout[person.id]) {
             const lvl = personLevels[person.id] || 0;
