@@ -1,6 +1,10 @@
+// กำหนดระยะหักลบรัศมี เพื่อให้พิกัด X, Y อยู่ตรงจุดกึ่งกลางของวงกลมพอดี
 const OFFSET_X = 45; 
 const OFFSET_Y = 45;
 
+// ==========================================
+// ฟังก์ชันหลักในการควบคุมและสั่งวาดผังเครือญาติ
+// ==========================================
 function drawTree() {
     canvas.innerHTML = "";
     canvasWidth = 0;
@@ -8,9 +12,9 @@ function drawTree() {
 
     buildFamilies();
     buildFamilyLevels();
-    layoutTree(); // ดึงพิกัดแบ่งโซนจาก layout.js
+    layoutTree(); // ดึงตำแหน่งจาก layout.js
 
-    // 1. ลากเส้นคู่สมรสแนวนอนสั้น ๆ และใส่หัวใจ ❤️
+    // 1. วาดเส้นคู่สมรสแนวนอนสั้น ๆ และใส่หัวใจ ❤️
     const drewHearts = new Set();
     Object.values(people).forEach(person => {
         const spouseField = person.spouse || person.spoues;
@@ -25,11 +29,14 @@ function drawTree() {
                 if (pPos && sPos) {
                     const heartKey = [person.id, partnerId].sort().join("-");
                     if (!drewHearts.has(heartKey)) {
+                        // ลากเส้นแนวนอนบาง ๆ เชื่อมคู่รัก
                         drawLine(pPos.x, pPos.y, sPos.x - pPos.x, 2);
 
+                        // คำนวณหาจุดกึ่งกลางระหว่างคู่รักโดยตรง
                         const centerX = (pPos.x + sPos.x) / 2;
                         const centerY = (pPos.y + sPos.y) / 2;
                         
+                        // วางหัวใจเหนือกึ่งกลางของคู่นั้น ๆ พอดีเป๊ะ
                         createHeart(centerX - 16, centerY - 45); 
                         drewHearts.add(heartKey);
                     }
@@ -38,7 +45,7 @@ function drawTree() {
         }
     });
 
-    // 2. ✅ แก้ไขใหม่: ล็อกระยะหักเลี้ยวแนวตั้ง (dropY) ให้ยาวสูงเท่ากันเป๊ะ ๆ ทุกรุ่นตระกูล
+    // 2. ลากเส้นกิ่งก้านสายสัมพันธ์หักมุมฉากแบบล็อกความยาวเส้นตั้งให้สม่ำเสมอเท่ากันทุกรุ่น
     Object.values(people).forEach(child => {
         if (!child.father && !child.mother) return;
 
@@ -63,8 +70,7 @@ function drawTree() {
         }
 
         if (parentCenterX !== 0) {
-            // ✅ ล็อกค่าตายตัว: ปรับระยะหย่อนดิ่งลงมาก่อนเลี้ยวให้เท่ากันทุกรุ่นที่ +80px พ้นระดับชื่อคนพอดีเป๊ะ
-            // ความยาวของเส้นตั้งฉากช่วงบนของทุกบ้านและทุกรุ่นจะสั้นกระชับเท่ากันทั้งหมดร้อยเปอร์เซ็นต์
+            // ปรับระยะหย่อนดิ่งลงมาก่อนเลี้ยวให้สม่ำเสมอเท่ากันทุกรุ่นที่ +80px พ้นระดับชื่อคนพอดีเป๊ะ
             const dropY = parentCenterY + 80; 
 
             // ลากเส้นดิ่งแกนหลักลงมาจากจุดกึ่งกลางพ่อแม่คู่จริงมาพักที่ระนาบคานเลี้ยว
@@ -99,18 +105,32 @@ function drawTree() {
     if (typeof resizeCanvas === "function") resizeCanvas();
 }
 
-// ฟังก์ชันสร้างวัตถุระบบ Layer คงเดิม
+// ==========================================
+// ฟังก์ชันย่อยสำหรับสร้างองค์ประกอบ (DOM Element)
+// ==========================================
+
 function createPerson(person, x, y) {
     const div = document.createElement("div");
     div.className = "person";
     div.id = "person-" + person.id;
     div.style.left = (x - OFFSET_X) + "px";
     div.style.top = (y - OFFSET_Y) + "px";
-    div.style.zIndex = "10"; 
+    div.style.zIndex = "10"; // บังคับให้อยู่ด้านหน้าเส้น
+
     div.onclick = () => showPopup(person);
+
     const genderClass = person.gender === "ช" ? "male" : "female";
     const icon = person.gender === "ช" ? "👨" : "👩";
-    div.innerHTML = `<div class="circle ${genderClass}">${icon}</div><div class="person-name">${person.name}</div>`;
+
+    div.innerHTML = `
+        <div class="circle ${genderClass}">
+            ${icon}
+        </div>
+        <div class="person-name">
+            ${person.name}
+        </div>
+    `;
+
     canvas.appendChild(div);
 }
 
@@ -120,7 +140,7 @@ function createHeart(x, y) {
     heart.innerHTML = "❤️";
     heart.style.left = x + "px";
     heart.style.top = y + "px";
-    heart.style.zIndex = "11"; 
+    heart.style.zIndex = "11"; // หัวใจอยู่ชั้นหน้าสุด
     canvas.appendChild(heart);
 }
 
@@ -131,6 +151,6 @@ function drawLine(x, y, width, height) {
     line.style.top = y + "px";
     line.style.width = width + "px";
     line.style.height = height + "px";
-    line.style.zIndex = "1"; 
+    line.style.zIndex = "1"; // เส้นอยู่หลังโหนดบุคคล
     canvas.appendChild(line);
 }
