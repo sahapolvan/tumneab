@@ -199,16 +199,91 @@ header h2{
     <div id="canvas"></div>
 </div>  
 
-<!-- เพิ่มโครงสร้าง HTML Popup ที่ระบบเรียกใช้แต่ไม่มีอยู่จริงด้านล่างนี้ -->
-<div id="personPopup" style="display: none;">
+<div id="personPopup" style="display:none;">
+
     <div class="popup-content">
-        <h3 id="popName">👤 ชื่อ</h3>
-        <p id="popGender">เพศ: -</p>
-        <p id="popParent">พ่อ: - / แม่: -</p>
-        <p id="popSpouse">คู่สมรส: -</p>
-        <p id="popChildren">ลูก: -</p>
-        <button class="popup-close" onclick="closePopup()">ปิดหน้าต่าง</button>
+
+        <div class="popup-header">
+
+            <button
+                class="popup-edit"
+                onclick="openEdit()">
+                ✏️
+            </button>
+
+            <button
+                class="popup-close"
+                onclick="closePopup()">
+                ❌
+            </button>
+
+        </div>
+
+        <div class="popup-photo">
+
+            <img
+                id="popImage"
+                src="img/no-image.png"
+                alt="รูปภาพ">
+
+        </div>
+
+        <h2 id="popName"></h2>
+
+        <div id="popStatus">
+            🟢 มีชีวิต
+        </div>
+
+        <hr>
+
+        <div class="popup-row">
+            <b>🎂 วันเกิด</b><br>
+            <span id="popBirthday">-</span>
+        </div>
+
+        <div class="popup-row">
+            <b>👨 บิดา</b><br>
+            <span id="popFather">-</span>
+        </div>
+
+        <div class="popup-row">
+            <b>👩 มารดา</b><br>
+            <span id="popMother">-</span>
+        </div>
+
+        <div class="popup-row">
+            <b>❤️ คู่สมรส</b><br>
+            <span id="popSpouses">-</span>
+        </div>
+
+        <div class="popup-row">
+            <b>👶 บุตร</b><br>
+            <span id="popChildren">-</span>
+        </div>
+
+        <div class="popup-row">
+            <b>☎️ ติดต่อ</b><br>
+            <span id="popContact">-</span>
+        </div>
+
+        <div
+            class="popup-detail-title"
+            onclick="toggleDetail()">
+
+            📖 รายละเอียด ▼
+
+        </div>
+
+        <div
+            id="popDetailBox"
+            style="display:none;">
+
+            <span id="popDetail">-</span>
+
+        </div>
+
     </div>
+
 </div>
 
 <!-- เรียกใช้งานสคริปต์ภายนอก -->
