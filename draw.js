@@ -68,26 +68,24 @@ function drawTree() {
             parentCenterX = motherPos.x;
             parentCenterY = motherPos.y;
         }
+if (parentCenterX !== 0) {
+    // ✅ คำนวณหาจุดกึ่งกลางระหว่างระดับพ่อแม่และระดับลูก เพื่อทำเป็นคานเลี้ยว
+    const dropY = parentCenterY + ((childPos.y - parentCenterY) / 2); 
 
-        if (parentCenterX !== 0) {
-            // ✅ ล็อกค่าความยาวเส้นดิ่งก่อนเลี้ยวให้เสมอกันทุกรุ่นตระกูลที่ +80px พ้นขอบวงกลมปุ๊บเลี้ยวปั๊บ 
-            const dropY = parentCenterY + 90; 
+    // ลากเส้นดิ่งลงมาจากจุดกึ่งกลางพ่อแม่มาพักที่คานเลี้ยว
+    drawLine(parentCenterX, parentCenterY, 2, dropY - parentCenterY);
 
-            // ลากเส้นดิ่งลงมาจากจุดกึ่งกลางพ่อแม่มาพักที่คานเลี้ยวของตัวเอง
-            drawLine(parentCenterX, parentCenterY, 2, dropY - parentCenterY);
+    // ลากเส้นแนวนอนเลี้ยวจากคานวิ่งไปหาพิกัดแกน X ของตัวลูก
+    if (parentCenterX <= childPos.x) {
+        drawLine(parentCenterX, dropY, childPos.x - parentCenterX, 2);
+    } else {
+        drawLine(childPos.x, dropY, parentCenterX - childPos.x, 2);
+    }
 
-            // ลากเส้นแนวนอนเลี้ยวจากคานวิ่งไปหาพิกัดแกน X ของตัวลูก
-            if (parentCenterX <= childPos.x) {
-                drawLine(parentCenterX, dropY, childPos.x - parentCenterX, 2);
-            } else {
-                drawLine(childPos.x, dropY, parentCenterX - childPos.x, 2);
-            }
+    // ลากเส้นดิ่งย่อยจากสะพานระนาบ ทิ่มตรงลงกึ่งกลางหัวโหนดลูก
+    drawLine(childPos.x, dropY, 2, (childPos.y - OFFSET_Y) - dropY);
+}
 
-            // ลากเส้นดิ่งย่อยจากสะพานระนาบ ทิ่มตรงลงกึ่งกลางหัวโหนดลูกแต่ละคนพอดีเป๊ะ
-            drawLine(childPos.x, dropY, 2, (childPos.y - OFFSET_Y) - dropY);
-           // drawLine(childPos.x, dropY, 2, (childPos.y - 85) - dropY)
-        }
-    });
 
     // 3. วาดกล่องบุคคลทุกคน (ซ่อนระบบเส้นเชื่อมไว้เลเยอร์ด้านหลังโหนดคน)
     Object.keys(layout).forEach(personId => {
