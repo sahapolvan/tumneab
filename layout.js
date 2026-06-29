@@ -7,7 +7,7 @@ function layoutTree() {
     layout = {};
     const personLevels = {};
 
-    // 1. ระบุรุ่นตามสายเลือดจากบนลงล่างอย่างแม่นยำ
+    // 1. ระบุเจเนอเรชันล็อกตามสายเลือดจากบนลงล่างอย่างแม่นยำ
     Object.values(people).forEach(person => {
         if (person.id == "1" || person.id == "2") personLevels[person.id] = 0;
     });
@@ -38,7 +38,7 @@ function layoutTree() {
         });
     }
 
-    // 2. ฟังก์ชันคำนวณพื้นที่ขอบเขต Subtree โซนบ้าน
+    // 2. ฟังก์ชันคำนวณพื้นที่ความกว้างโซน (นับคู่ครองแต่งซ้ำทุกคนละเอียด เพื่อกางขอบบ้าน)
     const subtreeWidths = {};
     function calculateSubtreeWidth(personId) {
         if (subtreeWidths[personId]) return subtreeWidths[personId];
@@ -64,12 +64,13 @@ function layoutTree() {
             childrenTotalWidth += calculateSubtreeWidth(childId);
         });
 
-        const finalWidth = Math.max(selfWidth, childrenTotalWidth) + 40;
+        // กั้นขอบสเปซเผื่อข้างระหว่างสายบ้าน (Buffer + 60px) ป้องกันคนทับกัน
+        const finalWidth = Math.max(selfWidth, childrenTotalWidth) + 60;
         subtreeWidths[personId] = finalWidth;
         return finalWidth;
     }
 
-    // 3. ✅ ตรรกะใหม่ตามแนวคิดน้า: วางตำแหน่งดิ่งตรงแนวคงที่ (ไม่ขยับหนีตามลูกจนเส้นโย่ง)
+    // 3. วางตำแหน่งแบบล็อกพื้นที่ตามขนาดโซนยึดจากระยะลูกหลานจริง (จัดกึ่งกลางกลุ่ม)
     const visited = new Set();
 
     function layoutPersonAndFamily(personId, startX, level) {
@@ -79,15 +80,22 @@ function layoutTree() {
         if (!person) return;
 
         const currentY = level * LEVEL_HEIGHT + 100;
+        const totalZoneWidth = subtreeWidths[personId] || NODE_WIDTH;
+
+        // วางกล่องตัวหลักให้อยู่กึ่งกลางโซนบ้านตัวเอง
+        let myX = startX + (totalZoneWidth / 2) - (NODE_WIDTH / 2);
         
-        // บังคับให้ตัวหลักตั้งหลักวาดชิดขอบซ้ายของกรอบโซนบ้านตัวเองเสมอตายตัว
-        // วิธีนี้จะทำให้จุดยืนของพ่อแม่นิ่งตรงแนว ไม่ขยับเบี้ยวไปขวาตามกลุ่มสะใภ้ด้านล่าง
-        let myX = startX + 20; 
+        // ดักกรณีคนแต่งงานซ้ำหลายคน ให้เฉลี่ยขยับตัวหลักหลบไปซ้าย เพื่อให้กลุ่มเมีย ๆ นั่งเรียงต่อท้ายได้กึ่งกลางโซนพอดี
+        const spouseField = person.spouse || person.spoues;
+        if (spouseField && spouseField.trim()) {
+            const totalSpouseCount = spouseField.split("|").filter(id => id.trim()).length;
+            myX = myX - ((totalSpouseCount * NODE_WIDTH) / 2);
+        }
 
         layout[personId] = { x: myX, y: currentY };
         visited.add(personId);
 
-        const spouseField = person.spouse || person.spoues;
+        // วางกล่องคู่สมรสทุกคนเรียงติดคิวต่อท้ายไปทางขวาอย่างเสถียร
         if (spouseField) {
             spouseField.split("|").forEach(sId => {
                 const partnerId = sId.trim();
@@ -99,9 +107,13 @@ function layoutTree() {
             });
         }
 
+        // ส่งต่อกรอบพื้นที่แบ่งโซนลงไปให้รุ่นลูกหลานด้านล่าง
         const ownFamily = families.find(f => f.father == personId || f.mother == personId);
         if (ownFamily && ownFamily.children && ownFamily.children.length > 0) {
-            let childStartX = startX;
+            // คำนวณขอบเขตลูกให้อยู่กึ่งกลางใต้โซนบ้านพ่อแม่พอดีเป๊ะ ไม่เบี้ยวไปข้างใดข้างหนึ่ง
+            const childrenWidthSum = ownFamily.children.reduce((sum, cId) => sum + (subtreeWidths[cId] || NODE_WIDTH), 0);
+            let childStartX = startX + (totalZoneWidth - childrenWidthSum) / 2;
+            
             ownFamily.children.forEach(childId => {
                 const childWidth = subtreeWidths[childId] || NODE_WIDTH;
                 layoutPersonAndFamily(childId, childStartX, level + 1);
@@ -112,13 +124,24 @@ function layoutTree() {
 
     calculateSubtreeWidth("1");
     
-    // ตั้งหลักผังเริ่มจาก X = 50 สม่ำเสมอกันหน้ากระดาน
-    layoutPersonAndFamily("1", 50, 1);
+    // ตั้งจุดสตาร์ทซ้ายสุดของผังทั้งหมดที่ X = 100
+    layoutPersonAndFamily("1", 100, 1);
 
-    // ล็อกระนาบปู่ย่ารุ่นแรกให้อยู่ตรงแนวคงที่สมดุลเหนือหัวรุ่นลูกตัวแรก
-    if (layout["1"]) {
-        layout["1"] = { x: layout["3"].x, y: 100 }; // ล็อกแนวตรงกับบ้านแรก
-        layout["2"] = { x: layout["3"].x + NODE_WIDTH, y: 100 };
+    // 4. ล็อกตำแหน่งประธานสูงสุด "เภา-สวัสดิ์" (รุ่น 0) จัดกึ่งกลางเหนือโซนลูกหลานทั้งหมดอย่างสมดุลร้อยเปอร์เซ็นต์
+    const rootFamily = families.find(f => (f.father == "1" && f.mother == "2") || (f.father == "2" && f.mother == "1"));
+    if (rootFamily && layout["1"]) {
+        let childrenXSum = 0;
+        let childrenCount = 0;
+        rootFamily.children.forEach(cId => {
+            if (layout[cId]) {
+                childrenXSum += layout[cId].x;
+                childrenCount++;
+            }
+        });
+        const rootCenterX = childrenCount > 0 ? childrenXSum / childrenCount : 800;
+        
+        layout["1"] = { x: rootCenterX - 75, y: 100 };
+        layout["2"] = { x: rootCenterX + 75, y: 100 };
     }
 
     // เก็บตกคนโสด
