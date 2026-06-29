@@ -292,35 +292,10 @@ header h2{
 <script src="layout.js"></script>
 <script src="tree.js"></script>
 <script src="draw.js"></script>
+<script src="popup.js"></script>
 <script src="background1.js"></script>
     
 <script>
-//แสดงรายละเอียด  
-function showPopup(person){  
-    document.getElementById("personPopup").style.display = "flex";  
-
-    document.getElementById("popName").innerText = "👤 " + person.name;  
-    document.getElementById("popGender").innerText = "เพศ: " + (person.gender || "-");  
-
-    const father = people[person.father]?.name || "-";  
-    const mother = people[person.mother]?.name || "-";  
-    document.getElementById("popParent").innerText = "พ่อ: " + father + " / แม่: " + mother;  
-
-    // แก้ไขคำสะกดผิดจาก person.spoues เป็น person.spouse
-    const spouse = people[person.spouse]?.name || "-";  
-    document.getElementById("popSpouse").innerText = "คู่สมรส: " + spouse;  
-
-    const children = Object.values(people)  
-        .filter(p => p.father == person.id || p.mother == person.id)  
-        .map(p => p.name)  
-        .join(", ") || "-";  
-
-    document.getElementById("popChildren").innerText = "ลูก: " + children;
-}
-
-function closePopup(){
-    document.getElementById("personPopup").style.display = "none";
-}
 
 //ดึงข้อมูลจาก Google Sheets
 const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRSlNovE5Trf1x5aKnKd5aA8htogPXgQb5RYmF-Sa0c3AZwHi3Z0Ggr4SuH_guOPhGzOFh87NYmqUbs/pub?output=csv";
