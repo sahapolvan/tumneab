@@ -1,135 +1,136 @@
-const NODE_WIDTH = 140;    // ช่องไฟแนวขนานระหว่างบุคคลแต่ละคน
-const LEVEL_HEIGHT = 240;  // ระยะห่างแนวตั้งระหว่างรุ่น
+const OFFSET_X = 45; 
+const OFFSET_Y = 45;
 
-let layout = {};
+function drawTree() {
+    canvas.innerHTML = "";
+    canvasWidth = 0;
+    canvasHeight = 0;
 
-function layoutTree() {
-    layout = {};
-    const personLevels = {};
+    buildFamilies();
+    buildFamilyLevels();
+    layoutTree(); // ดึงพิกัดแบ่งโซนจาก layout.js
 
-    // 1. ระบุรุ่นตามสายเลือดจากบนลงล่างอย่างแม่นยำ
+    // 1. ลากเส้นคู่สมรสแนวนอนสั้น ๆ และใส่หัวใจ ❤️
+    const drewHearts = new Set();
     Object.values(people).forEach(person => {
-        if (person.id == "1" || person.id == "2") personLevels[person.id] = 0;
-    });
-
-    for (let run = 0; run < 4; run++) {
-        Object.values(people).forEach(person => {
-            const fatherLevel = personLevels[person.father];
-            const motherLevel = personLevels[person.mother];
-            if (fatherLevel !== undefined) personLevels[person.id] = fatherLevel + 1;
-            else if (motherLevel !== undefined) personLevels[person.id] = motherLevel + 1;
-        });
-    }
-
-    for (let run = 0; run < 4; run++) {
-        Object.values(people).forEach(person => {
-            if (personLevels[person.id] === undefined) {
-                const spouseField = person.spouse || person.spoues;
-                if (spouseField) {
-                    const spouseIds = spouseField.split("|").map(id => id.trim());
-                    for (let sId of spouseIds) {
-                        if (personLevels[sId] !== undefined) {
-                            personLevels[person.id] = personLevels[sId];
-                            break;
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    // 2. ฟังก์ชันคำนวณพื้นที่ขอบเขต Subtree โซนบ้าน
-    const subtreeWidths = {};
-    function calculateSubtreeWidth(personId) {
-        if (subtreeWidths[personId]) return subtreeWidths[personId];
-        
-        const person = people[personId];
-        if (!person) return NODE_WIDTH;
-
-        let selfWidth = NODE_WIDTH;
-        const spouseField = person.spouse || person.spoues;
-        if (spouseField && spouseField.trim()) {
-            const spouseCount = spouseField.split("|").filter(id => id.trim()).length;
-            selfWidth += (spouseCount * NODE_WIDTH);
-        }
-
-        const ownFamily = families.find(f => f.father == personId || f.mother == personId);
-        if (!ownFamily || !ownFamily.children || ownFamily.children.length === 0) {
-            subtreeWidths[personId] = selfWidth;
-            return selfWidth;
-        }
-
-        let childrenTotalWidth = 0;
-        ownFamily.children.forEach(childId => {
-            childrenTotalWidth += calculateSubtreeWidth(childId);
-        });
-
-        const finalWidth = Math.max(selfWidth, childrenTotalWidth) + 40;
-        subtreeWidths[personId] = finalWidth;
-        return finalWidth;
-    }
-
-    // 3. ✅ ตรรกะใหม่ตามแนวคิดน้า: วางตำแหน่งดิ่งตรงแนวคงที่ (ไม่ขยับหนีตามลูกจนเส้นโย่ง)
-    const visited = new Set();
-
-    function layoutPersonAndFamily(personId, startX, level) {
-        if (!personId || visited.has(personId)) return;
-
-        const person = people[personId];
-        if (!person) return;
-
-        const currentY = level * LEVEL_HEIGHT + 100;
-        
-        // บังคับให้ตัวหลักตั้งหลักวาดชิดขอบซ้ายของกรอบโซนบ้านตัวเองเสมอตายตัว
-        // วิธีนี้จะทำให้จุดยืนของพ่อแม่นิ่งตรงแนว ไม่ขยับเบี้ยวไปขวาตามกลุ่มสะใภ้ด้านล่าง
-        let myX = startX + 20; 
-
-        layout[personId] = { x: myX, y: currentY };
-        visited.add(personId);
-
         const spouseField = person.spouse || person.spoues;
         if (spouseField) {
             spouseField.split("|").forEach(sId => {
                 const partnerId = sId.trim();
-                if (people[partnerId] && !visited.has(partnerId)) {
-                    myX += NODE_WIDTH;
-                    layout[partnerId] = { x: myX, y: currentY };
-                    visited.add(partnerId);
+                if (!partnerId) return;
+
+                const pPos = layout[person.id];
+                const sPos = layout[partnerId];
+
+                if (pPos && sPos) {
+                    const heartKey = [person.id, partnerId].sort().join("-");
+                    if (!drewHearts.has(heartKey)) {
+                        drawLine(pPos.x, pPos.y, sPos.x - pPos.x, 2);
+
+                        const centerX = (pPos.x + sPos.x) / 2;
+                        const centerY = (pPos.y + sPos.y) / 2;
+                        
+                        createHeart(centerX - 16, centerY - 45); 
+                        drewHearts.add(heartKey);
+                    }
                 }
             });
         }
+    });
 
-        const ownFamily = families.find(f => f.father == personId || f.mother == personId);
-        if (ownFamily && ownFamily.children && ownFamily.children.length > 0) {
-            let childStartX = startX;
-            ownFamily.children.forEach(childId => {
-                const childWidth = subtreeWidths[childId] || NODE_WIDTH;
-                layoutPersonAndFamily(childId, childStartX, level + 1);
-                childStartX += childWidth;
-            });
+    // 2. ✅ แก้ไขใหม่: ล็อกระยะหักเลี้ยวแนวตั้ง (dropY) ให้ยาวสูงเท่ากันเป๊ะ ๆ ทุกรุ่นตระกูล
+    Object.values(people).forEach(child => {
+        if (!child.father && !child.mother) return;
+
+        const childPos = layout[child.id];
+        if (!childPos) return;
+
+        const fatherPos = layout[child.father];
+        const motherPos = layout[child.mother];
+
+        let parentCenterX = 0;
+        let parentCenterY = 0;
+
+        if (fatherPos && motherPos) {
+            parentCenterX = (fatherPos.x + motherPos.x) / 2;
+            parentCenterY = fatherPos.y;
+        } else if (fatherPos) {
+            parentCenterX = fatherPos.x;
+            parentCenterY = fatherPos.y;
+        } else if (motherPos) {
+            parentCenterX = motherPos.x;
+            parentCenterY = motherPos.y;
         }
-    }
 
-    calculateSubtreeWidth("1");
-    
-    // ตั้งหลักผังเริ่มจาก X = 50 สม่ำเสมอกันหน้ากระดาน
-    layoutPersonAndFamily("1", 50, 1);
+        if (parentCenterX !== 0) {
+            // ✅ ล็อกค่าตายตัว: ปรับระยะหย่อนดิ่งลงมาก่อนเลี้ยวให้เท่ากันทุกรุ่นที่ +80px พ้นระดับชื่อคนพอดีเป๊ะ
+            // ความยาวของเส้นตั้งฉากช่วงบนของทุกบ้านและทุกรุ่นจะสั้นกระชับเท่ากันทั้งหมดร้อยเปอร์เซ็นต์
+            const dropY = parentCenterY + 80; 
 
-    // ล็อกระนาบปู่ย่ารุ่นแรกให้อยู่ตรงแนวคงที่สมดุลเหนือหัวรุ่นลูกตัวแรก
-    if (layout["1"]) {
-        layout["1"] = { x: layout["3"].x, y: 100 }; // ล็อกแนวตรงกับบ้านแรก
-        layout["2"] = { x: layout["3"].x + NODE_WIDTH, y: 100 };
-    }
+            // ลากเส้นดิ่งแกนหลักลงมาจากจุดกึ่งกลางพ่อแม่คู่จริงมาพักที่ระนาบคานเลี้ยว
+            drawLine(parentCenterX, parentCenterY, 2, dropY - parentCenterY);
 
-    // เก็บตกคนโสด
-    Object.values(people).forEach(person => {
-        if (!layout[person.id]) {
-            const lvl = personLevels[person.id] || 0;
-            let maxX = 100;
-            Object.keys(layout).forEach(id => {
-                if (personLevels[id] === lvl && layout[id].x > maxX) maxX = layout[id].x;
-            });
-            layout[person.id] = { x: maxX + NODE_WIDTH + 50, y: lvl * LEVEL_HEIGHT + 100 };
+            // ลากเส้นแนวนอนเลี้ยวไปหาพิกัดแกน X ของตัวลูก
+            if (parentCenterX <= childPos.x) {
+                drawLine(parentCenterX, dropY, childPos.x - parentCenterX, 2);
+            } else {
+                drawLine(childPos.x, dropY, parentCenterX - childPos.x, 2);
+            }
+
+            // ลากเส้นดิ่งย่อยจากระนาบคานเลี้ยว ทิ่มตรงลงกึ่งกลางหัวโหนดลูกแต่ละคนพอดีเป๊ะ
+            drawLine(childPos.x, dropY, 2, (childPos.y - OFFSET_Y) - dropY);
         }
     });
+
+    // 3. วาดกล่องบุคคลทุกคน (ซ่อนเส้นเชื่อมไว้เลเยอร์ด้านหลังโหนดคน)
+    Object.keys(layout).forEach(personId => {
+        const person = people[personId];
+        const pos = layout[personId];
+        if (person && pos) {
+            createPerson(person, pos.x, pos.y);
+            if (pos.x > canvasWidth) canvasWidth = pos.x;
+            if (pos.y > canvasHeight) canvasHeight = pos.y;
+        }
+    });
+
+    offsetX = 60;
+    offsetY = 40;
+    applyTransform();
+    if (typeof resizeCanvas === "function") resizeCanvas();
+}
+
+// ฟังก์ชันสร้างวัตถุระบบ Layer คงเดิม
+function createPerson(person, x, y) {
+    const div = document.createElement("div");
+    div.className = "person";
+    div.id = "person-" + person.id;
+    div.style.left = (x - OFFSET_X) + "px";
+    div.style.top = (y - OFFSET_Y) + "px";
+    div.style.zIndex = "10"; 
+    div.onclick = () => showPopup(person);
+    const genderClass = person.gender === "ช" ? "male" : "female";
+    const icon = person.gender === "ช" ? "👨" : "👩";
+    div.innerHTML = `<div class="circle ${genderClass}">${icon}</div><div class="person-name">${person.name}</div>`;
+    canvas.appendChild(div);
+}
+
+function createHeart(x, y) {
+    const heart = document.createElement("div");
+    heart.className = "heart";
+    heart.innerHTML = "❤️";
+    heart.style.left = x + "px";
+    heart.style.top = y + "px";
+    heart.style.zIndex = "11"; 
+    canvas.appendChild(heart);
+}
+
+function drawLine(x, y, width, height) {
+    const line = document.createElement("div");
+    line.className = "line";
+    line.style.left = x + "px";
+    line.style.top = y + "px";
+    line.style.width = width + "px";
+    line.style.height = height + "px";
+    line.style.zIndex = "1"; 
+    canvas.appendChild(line);
 }
