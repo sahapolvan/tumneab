@@ -8,9 +8,9 @@ function drawTree() {
 
     buildFamilies();
     buildFamilyLevels();
-    layoutTree(); // ดึงพิกัดจาก layout.js
+    layoutTree(); // ดึงพิกัดแบ่งโซนจาก layout.js
 
-    // 1. วาดเส้นคู่สมรสแนวนอนสั้น ๆ และใส่หัวใจ ❤️ (✅ แก้ไขใหม่: คำนวณตามคนที่ยืนติดกันจริง ๆ แก้ปัญหาหัวใจซ้อนกัน)
+    // 1. ลากเส้นคู่สมรสแนวนอนสั้น ๆ และใส่หัวใจ ❤️
     const drewHearts = new Set();
     Object.values(people).forEach(person => {
         const spouseField = person.spouse || person.spoues;
@@ -25,14 +25,11 @@ function drawTree() {
                 if (pPos && sPos) {
                     const heartKey = [person.id, partnerId].sort().join("-");
                     if (!drewHearts.has(heartKey)) {
-                        // ลากเส้นแนวนอนบาง ๆ เชื่อมคู่รัก
                         drawLine(pPos.x, pPos.y, sPos.x - pPos.x, 2);
 
-                        // ✅ แก้บั๊กหัวใจซ้อน: คำนวณหาจุดกึ่งกลางระหว่าง 2 โอนดนี้โดยตรง ไม่ว่าจะแต่งงานกี่คน
                         const centerX = (pPos.x + sPos.x) / 2;
                         const centerY = (pPos.y + sPos.y) / 2;
                         
-                        // วางหัวใจเหนือกึ่งกลางของคู่นั้น ๆ พอดีเป๊ะ ไม่บินไปกองรวมกันฝั่งซ้าย
                         createHeart(centerX - 16, centerY - 45); 
                         drewHearts.add(heartKey);
                     }
@@ -41,7 +38,7 @@ function drawTree() {
         }
     });
 
-    // 2. ✅ แก้ไขใหม่: ปรับระยะคานแนวตั้งให้สั้นกระชับลงตามวงกลมสีแดงด้านบนของน้า
+    // 2. ✅ แก้ไขใหม่: ล็อกระยะหักเลี้ยวแนวตั้ง (dropY) ให้ยาวสูงเท่ากันเป๊ะ ๆ ทุกรุ่นตระกูล
     Object.values(people).forEach(child => {
         if (!child.father && !child.mother) return;
 
@@ -66,11 +63,11 @@ function drawTree() {
         }
 
         if (parentCenterX !== 0) {
-            // ✅ ดึงคานสั้นลง: ปรับระยะ dropY ของรุ่นแรก (เภา-สวัสดิ์ parentCenterY == 100) ให้หดกระชับลงเหลือแค่ +60px พ้นชื่อปุ๊บเลี้ยวปั๊บ 
-            // ส่วนรุ่นหลานด้านล่างให้หย่อนลงมา +110px พ้นระดับชื่อหลานอย่างสวยงาม แยกชั้นชัดเจน
-            const dropY = parentCenterY === 100 ? parentCenterY + 60 : parentCenterY + 110; 
+            // ✅ ล็อกค่าตายตัว: ปรับระยะหย่อนดิ่งลงมาก่อนเลี้ยวให้เท่ากันทุกรุ่นที่ +80px พ้นระดับชื่อคนพอดีเป๊ะ
+            // ความยาวของเส้นตั้งฉากช่วงบนของทุกบ้านและทุกรุ่นจะสั้นกระชับเท่ากันทั้งหมดร้อยเปอร์เซ็นต์
+            const dropY = parentCenterY + 80; 
 
-            // ลากเส้นดิ่งแกนหลักลงมาจากจุดกึ่งกลางพ่อแม่คู่จริงมาพักที่เลนตัวเอง
+            // ลากเส้นดิ่งแกนหลักลงมาจากจุดกึ่งกลางพ่อแม่คู่จริงมาพักที่ระนาบคานเลี้ยว
             drawLine(parentCenterX, parentCenterY, 2, dropY - parentCenterY);
 
             // ลากเส้นแนวนอนเลี้ยวไปหาพิกัดแกน X ของตัวลูก
@@ -80,12 +77,12 @@ function drawTree() {
                 drawLine(childPos.x, dropY, parentCenterX - childPos.x, 2);
             }
 
-            // ลากเส้นดิ่งย่อยจากระนาบเลน ทิ่มตรงลงกึ่งกลางหัวโหนดลูกคนนั้น ๆ พอดีเป๊ะ
+            // ลากเส้นดิ่งย่อยจากระนาบคานเลี้ยว ทิ่มตรงลงกึ่งกลางหัวโหนดลูกแต่ละคนพอดีเป๊ะ
             drawLine(childPos.x, dropY, 2, (childPos.y - OFFSET_Y) - dropY);
         }
     });
 
-    // 3. วาดกล่องบุคคลทุกคน (ซ่อนเส้นไว้เลเยอร์ด้านหลังโหนดคน)
+    // 3. วาดกล่องบุคคลทุกคน (ซ่อนเส้นเชื่อมไว้เลเยอร์ด้านหลังโหนดคน)
     Object.keys(layout).forEach(personId => {
         const person = people[personId];
         const pos = layout[personId];
@@ -102,14 +99,14 @@ function drawTree() {
     if (typeof resizeCanvas === "function") resizeCanvas();
 }
 
-// ฟังก์ชันย่อยระบบ Layer คงเดิมเพื่อความปลอดภัย
+// ฟังก์ชันสร้างวัตถุระบบ Layer คงเดิม
 function createPerson(person, x, y) {
     const div = document.createElement("div");
     div.className = "person";
     div.id = "person-" + person.id;
     div.style.left = (x - OFFSET_X) + "px";
     div.style.top = (y - OFFSET_Y) + "px";
-    div.style.zIndex = "10"; // อยู่ด้านหน้าเส้น
+    div.style.zIndex = "10"; 
     div.onclick = () => showPopup(person);
     const genderClass = person.gender === "ช" ? "male" : "female";
     const icon = person.gender === "ช" ? "👨" : "👩";
@@ -123,7 +120,7 @@ function createHeart(x, y) {
     heart.innerHTML = "❤️";
     heart.style.left = x + "px";
     heart.style.top = y + "px";
-    heart.style.zIndex = "11"; // หัวใจอยู่หน้าสุด
+    heart.style.zIndex = "11"; 
     canvas.appendChild(heart);
 }
 
@@ -134,6 +131,6 @@ function drawLine(x, y, width, height) {
     line.style.top = y + "px";
     line.style.width = width + "px";
     line.style.height = height + "px";
-    line.style.zIndex = "1"; // เส้นอยู่หลังสุด
+    line.style.zIndex = "1"; 
     canvas.appendChild(line);
 }
