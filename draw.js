@@ -84,7 +84,8 @@ function drawTree() {
             }
 
             // ลากเส้นดิ่งย่อยจากสะพานระนาบ ทิ่มตรงลงกึ่งกลางหัวโหนดลูกแต่ละคนพอดีเป๊ะ
-            drawLine(childPos.x, dropY, 2, (childPos.y - OFFSET_Y) - dropY);
+           // drawLine(childPos.x, dropY, 2, (childPos.y - OFFSET_Y) - dropY);
+            drawLine(childPos.x, dropY, 2, (childPos.y - 85) - dropY)
         }
     });
 
