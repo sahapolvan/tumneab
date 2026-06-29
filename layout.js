@@ -1,5 +1,6 @@
-const NODE_WIDTH = 140;    // ช่องไฟแนวขนานระหว่างบุคคลแต่ละคน
-const LEVEL_HEIGHT = 240;  // ระยะห่างระหว่างแถวรุ่น (แนวตั้ง)
+const NODE_WIDTH = 150;    // ช่องไฟแนวขนานระหว่างบุคคลทั่วไป
+const COUPLE_GAP = 160;    // ช่องไฟระหว่างคู่สมรสเพื่อไม่ให้วงกลมซ้อนกัน
+const LEVEL_HEIGHT = 240;  // ระยะห่างแนวตั้งระหว่างรุ่น
 
 let layout = {};
 
@@ -7,10 +8,10 @@ function layoutTree() {
     layout = {};
     const personLevels = {};
 
-    // 1. ระบุรุ่น (Generation) ตามสายเลือดจากบนลงล่างอย่างแม่นยำ
+    // 1. ระบุรุ่นตามสายเลือดจากบนลงล่างอย่างแม่นยำ
     Object.values(people).forEach(person => {
         if (person.id == "1" || person.id == "2") {
-            personLevels[person.id] = 0; // รุ่นปู่ย่า
+            personLevels[person.id] = 0;
         }
     });
 
@@ -23,7 +24,6 @@ function layoutTree() {
         });
     }
 
-    // จัดกลุ่มเขย/สะใภ้ให้อยู่รุ่นเดียวกับคู่สมรสของตนเอง
     for (let run = 0; run < 4; run++) {
         Object.values(people).forEach(person => {
             if (personLevels[person.id] === undefined) {
@@ -41,12 +41,7 @@ function layoutTree() {
         });
     }
 
-    // ดักกรณีหลุดโพลอย ๆ ให้เป็นรุ่นแรก
-    Object.values(people).forEach(person => {
-        if (personLevels[person.id] === undefined) personLevels[person.id] = 0;
-    });
-
-    // 2. จัดกลุ่มรายชื่อคนแยกตามแถวรุ่น (Rows) และเรียงลำดับไอดีให้แน่นอน
+    // 2. จัดกลุ่มแยกแถวรุ่น
     const rows = {};
     Object.keys(personLevels).forEach(pId => {
         const gen = personLevels[pId];
@@ -54,15 +49,13 @@ function layoutTree() {
         rows[gen].push(people[pId]);
     });
 
-    // 3. กำหนดแกนหน้าจอหลัก (สมมติความกว้างหน้าจอไว้ที่ 1600px เพื่อให้ขึงแถวได้กว้างและสมดุล)
-    const viewWidth = 1600;
-
+    // 3. จัดคิวเรียงหน้ากระดานแบบเว้นขอบตามแนวคิดของน้า
     Object.keys(rows).forEach(level => {
         const currentY = Number(level) * LEVEL_HEIGHT + 100;
         const orderedPeople = [];
         const visited = new Set();
 
-        // จัดคิวให้คู่สมรสยืนติดกันเสมอ เพื่อให้เส้นแต่งงานและหัวใจสวยงาม
+        // เรียงลำดับให้คู่สมรสยืนติดกันเสมอ
         rows[level].sort((a, b) => Number(a.id) - Number(b.id)).forEach(person => {
             if (visited.has(person.id)) return;
 
@@ -82,20 +75,22 @@ function layoutTree() {
             }
         });
 
-        // 4. ✅ คำนวณจุดเริ่มต้น (startX) เพื่อเว้นขอบซ้าย-ขวาให้เท่ากันตามแนวคิดของน้า
+        // 4. คำนวณขอบเขตหน้าเว็บแบบยืดหยุ่นตามจำนวนคนจริงในแถวเพื่อไม่ให้แน่นตรงกลาง
         const totalPeopleInRow = orderedPeople.length;
+        
+        // ขยายพื้นที่พื้นที่หน้าจอตามจำนวนคน (คนเยอะ หน้าเว็บจะขยายขอบกว้างออกไปด้านข้างอัตโนมัติ)
+        const dynamicViewWidth = Math.max(1800, totalPeopleInRow * (NODE_WIDTH + 20));
         const totalRowWidth = totalPeopleInRow * NODE_WIDTH;
         
-        // หาจุดเริ่มวาดด้านซ้าย เพื่อให้แถวนี้อยู่กึ่งกลางหน้าเว็บพอดี (ขอบซ้ายและขวาจะเหลือเท่ากันเป๊ะ)
-        let startX = (viewWidth - totalRowWidth) / 2 + (NODE_WIDTH / 2);
+        // คำนวณเว้นขอบซ้าย-ขวาให้เท่ากันเป๊ะ ๆ
+        let startX = (dynamicViewWidth - totalRowWidth) / 2 + (NODE_WIDTH / 2);
 
-        // วางตำแหน่งพิกเซลของทุกคนในแถวนี้เรียงหน้ากระดานต่อคิวกันไปยาว ๆ 
         orderedPeople.forEach(person => {
             layout[person.id] = {
                 x: startX,
                 y: currentY
             };
-            startX += NODE_WIDTH; // ดันคิวไปข้างหน้าทีละคน ไม่มีซ้อนทับกันแน่นอน
+            startX += NODE_WIDTH; // ทุกคนมีพื้นที่เก้าอี้ส่วนตัว ไม่ทับกันแน่นอน
         });
     });
 }
