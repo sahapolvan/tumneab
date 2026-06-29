@@ -26,10 +26,12 @@ function showPopup(person){
     // ----------------------
     // วันเกิด
     // ----------------------
-
-    document.getElementById("popBirthday").innerText =
-        person.birthday || "-";
-
+    
+    document.getElementById("popBirthday").innerHTML =
+    (person.birthday || "-") +
+    "<br>อายุ " +
+    getAge(person);
+    
     // ----------------------
     // บิดา
     // ----------------------
@@ -187,3 +189,93 @@ function renderDetail(person){
 
 }
 
+// ==========================
+// เปิด/ปิด รายละเอียด
+// ==========================
+
+function toggleDetail(){
+
+    const box =
+        document.getElementById("popDetailBox");
+
+    if(box.style.display=="none"){
+
+        box.style.display="block";
+
+    }else{
+
+        box.style.display="none";
+
+    }
+
+}
+
+// ==========================
+// เสนอแก้ไขข้อมูล
+// ==========================
+
+function openEdit(){
+
+    if(!currentPerson)
+        return;
+
+    alert(
+        "เสนอแก้ไขข้อมูล : " +
+        currentPerson.name
+    );
+
+    // ต่อไปจะเปิด Edit Popup
+}
+
+// ==========================
+// อายุ
+// ==========================
+
+function getAge(person){
+
+    if(!person.birthday)
+        return "-";
+
+    const birth =
+        new Date(person.birthday);
+
+    if(isNaN(birth))
+        return "-";
+
+    let end =
+        new Date();
+
+    if(person.deathday){
+
+        const d =
+            new Date(person.deathday);
+
+        if(!isNaN(d))
+            end = d;
+
+    }
+
+    let age =
+        end.getFullYear() -
+        birth.getFullYear();
+
+    const month =
+        end.getMonth() -
+        birth.getMonth();
+
+    if(
+        month < 0 ||
+        (
+            month===0 &&
+            end.getDate() <
+            birth.getDate()
+        )
+    ){
+
+        age--;
+
+    }
+
+    return age + " ปี";
+
+}
