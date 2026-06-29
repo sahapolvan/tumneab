@@ -70,20 +70,20 @@ function drawTree() {
         }
 if (parentCenterX !== 0) {
     // ✅ คำนวณหาจุดกึ่งกลางระหว่างระดับพ่อแม่และระดับลูก เพื่อทำเป็นคานเลี้ยว
-    const dropY = parentCenterY + ((childPos.y - parentCenterY) / 2); 
+    const dropY = parentCenterY + ((childPos.y - parentCenterY) / 4); 
 
     // ลากเส้นดิ่งลงมาจากจุดกึ่งกลางพ่อแม่มาพักที่คานเลี้ยว
-    drawLine(parentCenterX, parentCenterY, 2, dropY - parentCenterY);
+    drawLine(parentCenterX, parentCenterY, 4, dropY - parentCenterY);
 
     // ลากเส้นแนวนอนเลี้ยวจากคานวิ่งไปหาพิกัดแกน X ของตัวลูก
     if (parentCenterX <= childPos.x) {
-        drawLine(parentCenterX, dropY, childPos.x - parentCenterX, 2);
+        drawLine(parentCenterX, dropY, childPos.x - parentCenterX, 4);
     } else {
-        drawLine(childPos.x, dropY, parentCenterX - childPos.x, 2);
+        drawLine(childPos.x, dropY, parentCenterX - childPos.x, 4);
     }
 
     // ลากเส้นดิ่งย่อยจากสะพานระนาบ ทิ่มตรงลงกึ่งกลางหัวโหนดลูก
-    drawLine(childPos.x, dropY, 2, (childPos.y - OFFSET_Y) - dropY);
+    drawLine(childPos.x, dropY, 4, (childPos.y - OFFSET_Y) - dropY);
 }
 });
     // 3. วาดกล่องบุคคลทุกคน (ซ่อนระบบเส้นเชื่อมไว้เลเยอร์ด้านหลังโหนดคน)
