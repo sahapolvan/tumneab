@@ -1,5 +1,5 @@
 const NODE_WIDTH = 140;    // ช่องไฟแนวขนานระหว่างบุคคลแต่ละคน
-const LEVEL_HEIGHT = 240;  // ระยะห่างแนวตั้งระหว่างรุ่น
+const LEVEL_HEIGHT = 180;  // ระยะห่างแนวตั้งระหว่างรุ่น
 
 let layout = {};
 
