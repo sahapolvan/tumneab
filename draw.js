@@ -8,7 +8,7 @@ function drawTree() {
 
     buildFamilies();
     buildFamilyLevels();
-    layoutTree(); // ดึงพิกัดแถวหน้ากระดานสมดุล
+    layoutTree(); // อ้างอิงพิกัดกระจายขอบหน้ากระดานสมดุลจาก layout.js
 
     // 1. วาดกล่องบุคคลทุกคนตามตำแหน่งพิกัด
     Object.keys(layout).forEach(personId => {
@@ -36,9 +36,7 @@ function drawTree() {
                 if (pPos && sPos) {
                     const heartKey = [person.id, partnerId].sort().join("-");
                     if (!drewHearts.has(heartKey)) {
-                        // ลากเส้นแนวนอนบาง ๆ เชื่อมเฉพาะคู่รักที่นั่งติดกัน
                         drawLine(pPos.x, pPos.y, sPos.x - pPos.x, 2);
-
                         const centerX = (pPos.x + sPos.x) / 2;
                         const centerY = (pPos.y + sPos.y) / 2;
                         createHeart(centerX - 16, centerY - 45); 
@@ -49,26 +47,29 @@ function drawTree() {
         }
     });
 
-    // 3. ✅ ปรับปรุงใหม่แบบเด็ดขาด: ลากเส้นสายใยตรงจาก "คู่พ่อแม่" ทิ่มลงหัวโหนด "ลูก" ทีละคน (งดใช้คานแนวนอนร่วมกัน)
-    // วิธีนี้จะตัดปัญหาเรื่องเส้นคานแนวนอนทับกันยาวทะลุจอทิ้งไปร้อยเปอร์เซ็นต์
+    // 3. ✅ ปรับปรุงใหม่แบบเด็ดขาด: ลากเส้นกิ่งหักเลี้ยวโดยแบ่งระดับ "ความสูง-ต่ำ (เยื้องเลน)" แยกเด็ดขาดตามแต่ละบ้าน
+    // วิธีนี้จะแก้ปัญหาการจัดแถวกึ่งกลางแล้วเส้นวิ่งมาชนเกยกันเป็นคานยาวเส้นเดียวได้ 100%
+    
+    // สร้างตัวนับดัชนีครอบครัวในแต่ละรุ่นเพื่อใช้คำนวณระยะเยื้องเลน
+    let familyIndexMap = {};
+
     Object.values(people).forEach(child => {
-        // ข้ามคนไม่มีพ่อและแม่ (รุ่นปู่ย่า หรือเขยสะใภ้)
         if (!child.father && !child.mother) return;
 
         const childPos = layout[child.id];
         if (!childPos) return;
 
-        // หาพิกัดของพ่อและแม่ของเด็กคนนี้
         const fatherPos = layout[child.father];
         const motherPos = layout[child.mother];
 
         let parentCenterX = 0;
         let parentCenterY = 0;
+        let parentIdKey = child.father || child.mother; // ใช้ไอดีพ่อหรือแม่เป็นคีย์ระบุกลุ่มบ้าน
 
-        // หาจุดกึ่งกลางของคู่พ่อแม่รายบุคคลจริง ๆ จากตารางข้อมูล
         if (fatherPos && motherPos) {
             parentCenterX = (fatherPos.x + motherPos.x) / 2;
             parentCenterY = fatherPos.y;
+            parentIdKey = [child.father, child.mother].sort().join("-");
         } else if (fatherPos) {
             parentCenterX = fatherPos.x;
             parentCenterY = fatherPos.y;
@@ -77,22 +78,29 @@ function drawTree() {
             parentCenterY = motherPos.y;
         }
 
-        // หากพบคู่พ่อแม่ในระบบพิกัด ให้ลากเส้นหักฉากส่วนบุคคลลงมาหาลูกโดยตรง
         if (parentCenterX !== 0) {
-            // จุดหักเลี้ยวแนวตั้ง (ดิ่งลงมาจากแถวพ่อแม่ 85px) เป็นของใครของมัน ไม่ปนกัน
-            const dropY = parentCenterY + 85; 
+            // สุ่มจัดลำดับคิวให้แต่ละบ้านมีระนาบความสูงคานเลี้ยวไม่เท่ากัน
+            if (familyIndexMap[parentIdKey] === undefined) {
+                // เก็บจำนวนกลุ่มบ้านที่เจอในรุ่นความสูงระดับนี้
+                let countInThisLevel = Object.keys(familyIndexMap).filter(k => k.startsWith(parentCenterY)).length;
+                familyIndexMap[parentIdKey] = countInThisLevel;
+            }
 
-            // ลากเส้นดิ่งสั้น ๆ ลงมาจากกึ่งกลางพ่อแม่คู่ตัวจริง
+            // คำนวณระยะเยื้องเลนแนวตั้ง (ดึงให้แต่ละบ้านสูง-ต่ำสลับฟันปลาห่างกันทีละ 20px ไม่ให้เส้นระนาบชนกัน)
+            const laneOffset = familyIndexMap[parentIdKey] * 22; 
+            const dropY = parentCenterY + 45 + laneOffset; 
+
+            // ลากเส้นดิ่งลงมาจากจุดกึ่งกลางพ่อแม่คู่ตัวจริงมาพักที่เลนตัวเอง
             drawLine(parentCenterX, parentCenterY, 2, dropY - parentCenterY);
 
-            // ลากเส้นแนวนอนจากจุดดิ่งของพ่อแม่ วิ่งไปหาพิกัดแกน X ของตัวลูกรายคน
+            // ลากเส้นแนวนอนเลี้ยวไปหาพิกัดแกน X ของตัวลูก
             if (parentCenterX <= childPos.x) {
                 drawLine(parentCenterX, dropY, childPos.x - parentCenterX, 2);
             } else {
                 drawLine(childPos.x, dropY, parentCenterX - childPos.x, 2);
             }
 
-            // ลากเส้นดิ่งย่อยทิ่มตรงลงกึ่งกลางหัวโหนดลูกคนนั้นพอดีเป๊ะ
+            // ลากเส้นดิ่งย่อยจากระนาบเลน ทิ่มตรงลงกึ่งกลางหัวโหนดลูกคนนั้น ๆ พอดีเป๊ะ
             drawLine(childPos.x, dropY, 2, (childPos.y - OFFSET_Y) - dropY);
         }
     });
