@@ -71,7 +71,7 @@ function drawTree() {
 
         if (parentCenterX !== 0) {
             // ✅ ล็อกค่าความยาวเส้นดิ่งก่อนเลี้ยวให้เสมอกันทุกรุ่นตระกูลที่ +80px พ้นขอบวงกลมปุ๊บเลี้ยวปั๊บ 
-            const dropY = parentCenterY + 90; 
+            const dropY = parentCenterY + 30; 
 
             // ลากเส้นดิ่งลงมาจากจุดกึ่งกลางพ่อแม่มาพักที่คานเลี้ยวของตัวเอง
             drawLine(parentCenterX, parentCenterY, 2, dropY - parentCenterY);
@@ -84,8 +84,8 @@ function drawTree() {
             }
 
             // ลากเส้นดิ่งย่อยจากสะพานระนาบ ทิ่มตรงลงกึ่งกลางหัวโหนดลูกแต่ละคนพอดีเป๊ะ
-           // drawLine(childPos.x, dropY, 2, (childPos.y - OFFSET_Y) - dropY);
-            drawLine(childPos.x, dropY, 2, (childPos.y - 85) - dropY)
+            drawLine(childPos.x, dropY, 2, (childPos.y - OFFSET_Y) - dropY);
+           // drawLine(childPos.x, dropY, 2, (childPos.y - 85) - dropY)
         }
     });
 
