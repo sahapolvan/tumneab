@@ -1,10 +1,6 @@
-// กำหนดระยะหักลบรัศมี เพื่อให้พิกัด X, Y อยู่ตรงจุดกึ่งกลางของวงกลมพอดี
 const OFFSET_X = 45; 
 const OFFSET_Y = 45;
 
-// ==========================================
-// ฟังก์ชันหลักในการควบคุมและสั่งวาดผังเครือญาติ
-// ==========================================
 function drawTree() {
     canvas.innerHTML = "";
     canvasWidth = 0;
@@ -12,40 +8,43 @@ function drawTree() {
 
     buildFamilies();
     buildFamilyLevels();
-    layoutTree(); // ดึงตำแหน่งจาก layout.js
+    layoutTree(); // ดึงพิกัดจัดโซนสมดุลจาก layout.js
 
-    // 1. วาดเส้นคู่สมรสแนวนอนสั้น ๆ และใส่หัวใจ ❤️
+    // 1. วาดเส้นคู่สมรสแนวนอน และใส่หัวใจ ❤️ (✅ แก้ไขใหม่: คำนวณหาคู่ที่นั่งติดกันจริง ๆ)
     const drewHearts = new Set();
+    
     Object.values(people).forEach(person => {
         const spouseField = person.spouse || person.spoues;
         if (spouseField) {
-            spouseField.split("|").forEach(sId => {
-                const partnerId = sId.trim();
-                if (!partnerId) return;
+            // สร้างอาร์เรย์เก็บไอดีของครอบครัวนี้ (รวมตัวหลักและเมียทุกคน) เพื่อหาคู่ที่นั่งเรียงติดกันในแถว
+            const partnerIds = [person.id, ...spouseField.split("|").map(id => id.trim())].filter(Boolean);
+            
+            // วนลูปจับคู่คนที่นั่งอยู่เก้าอี้ติดกันข้าง ๆ กันทีละคู่ เพื่อวาดเส้นและติดหัวใจให้ตรงคู่
+            for (let i = 0; i < partnerIds.length - 1; i++) {
+                const id1 = partnerIds[i];
+                const id2 = partnerIds[i+1];
+                
+                const pos1 = layout[id1];
+                const pos2 = layout[id2];
 
-                const pPos = layout[person.id];
-                const sPos = layout[partnerId];
-
-                if (pPos && sPos) {
-                    const heartKey = [person.id, partnerId].sort().join("-");
+                if (pos1 && pos2) {
+                    const heartKey = [id1, id2].sort().join("-");
                     if (!drewHearts.has(heartKey)) {
-                        // ลากเส้นแนวนอนบาง ๆ เชื่อมคู่รัก
-                        drawLine(pPos.x, pPos.y, sPos.x - pPos.x, 2);
+                        // ลากเส้นแนวนอนสั้น ๆ ระหว่างคู่รักที่อยู่ติดกัน
+                        drawLine(pos1.x, pos1.y, pos2.x - pos1.x, 2);
 
-                        // คำนวณหาจุดกึ่งกลางระหว่างคู่รักโดยตรง
-                        const centerX = (pPos.x + sPos.x) / 2;
-                        const centerY = (pPos.y + sPos.y) / 2;
-                        
-                        // วางหัวใจเหนือกึ่งกลางของคู่นั้น ๆ พอดีเป๊ะ
+                        // ✅ แก้บั๊กหัวใจซ้อนถาวร: หาจุดกึ่งกลางระหว่าง 2 โหนดที่นั่งติดกันนั้นตรง ๆ
+                        const centerX = (pos1.x + pos2.x) / 2;
+                        const centerY = (pos1.y + pos2.y) / 2;
                         createHeart(centerX - 16, centerY - 45); 
                         drewHearts.add(heartKey);
                     }
                 }
-            });
+            }
         }
     });
 
-    // 2. ลากเส้นกิ่งก้านสายสัมพันธ์หักมุมฉากแบบล็อกความยาวเส้นตั้งให้สม่ำเสมอเท่ากันทุกรุ่น
+    // 2. ✅ แก้ไขใหม่: ล็อกระยะหักเลี้ยวแนวตั้ง (dropY) ให้สั้นกระชับและยาวเท่ากันเป๊ะ 80px ทุกรุ่นตระกูล
     Object.values(people).forEach(child => {
         if (!child.father && !child.mother) return;
 
@@ -58,6 +57,7 @@ function drawTree() {
         let parentCenterX = 0;
         let parentCenterY = 0;
 
+        // ดึงพิกัดกึ่งกลางของพ่อแม่ตัวจริง
         if (fatherPos && motherPos) {
             parentCenterX = (fatherPos.x + motherPos.x) / 2;
             parentCenterY = fatherPos.y;
@@ -70,25 +70,25 @@ function drawTree() {
         }
 
         if (parentCenterX !== 0) {
-            // ปรับระยะหย่อนดิ่งลงมาก่อนเลี้ยวให้สม่ำเสมอเท่ากันทุกรุ่นที่ +80px พ้นระดับชื่อคนพอดีเป๊ะ
+            // ✅ ล็อกค่าความยาวเส้นดิ่งก่อนเลี้ยวให้เสมอกันทุกรุ่นตระกูลที่ +80px พ้นขอบวงกลมปุ๊บเลี้ยวปั๊บ 
             const dropY = parentCenterY + 80; 
 
-            // ลากเส้นดิ่งแกนหลักลงมาจากจุดกึ่งกลางพ่อแม่คู่จริงมาพักที่ระนาบคานเลี้ยว
+            // ลากเส้นดิ่งลงมาจากจุดกึ่งกลางพ่อแม่มาพักที่คานเลี้ยวของตัวเอง
             drawLine(parentCenterX, parentCenterY, 2, dropY - parentCenterY);
 
-            // ลากเส้นแนวนอนเลี้ยวไปหาพิกัดแกน X ของตัวลูก
+            // ลากเส้นแนวนอนเลี้ยวจากคานวิ่งไปหาพิกัดแกน X ของตัวลูก
             if (parentCenterX <= childPos.x) {
                 drawLine(parentCenterX, dropY, childPos.x - parentCenterX, 2);
             } else {
                 drawLine(childPos.x, dropY, parentCenterX - childPos.x, 2);
             }
 
-            // ลากเส้นดิ่งย่อยจากระนาบคานเลี้ยว ทิ่มตรงลงกึ่งกลางหัวโหนดลูกแต่ละคนพอดีเป๊ะ
+            // ลากเส้นดิ่งย่อยจากสะพานระนาบ ทิ่มตรงลงกึ่งกลางหัวโหนดลูกแต่ละคนพอดีเป๊ะ
             drawLine(childPos.x, dropY, 2, (childPos.y - OFFSET_Y) - dropY);
         }
     });
 
-    // 3. วาดกล่องบุคคลทุกคน (ซ่อนเส้นเชื่อมไว้เลเยอร์ด้านหลังโหนดคน)
+    // 3. วาดกล่องบุคคลทุกคน (ซ่อนระบบเส้นเชื่อมไว้เลเยอร์ด้านหลังโหนดคน)
     Object.keys(layout).forEach(personId => {
         const person = people[personId];
         const pos = layout[personId];
@@ -105,32 +105,18 @@ function drawTree() {
     if (typeof resizeCanvas === "function") resizeCanvas();
 }
 
-// ==========================================
-// ฟังก์ชันย่อยสำหรับสร้างองค์ประกอบ (DOM Element)
-// ==========================================
-
+// ฟังก์ชันสร้างวัตถุระบบ Layer คงเดิมเพื่อความปลอดภัย
 function createPerson(person, x, y) {
     const div = document.createElement("div");
     div.className = "person";
     div.id = "person-" + person.id;
     div.style.left = (x - OFFSET_X) + "px";
     div.style.top = (y - OFFSET_Y) + "px";
-    div.style.zIndex = "10"; // บังคับให้อยู่ด้านหน้าเส้น
-
+    div.style.zIndex = "10"; 
     div.onclick = () => showPopup(person);
-
     const genderClass = person.gender === "ช" ? "male" : "female";
     const icon = person.gender === "ช" ? "👨" : "👩";
-
-    div.innerHTML = `
-        <div class="circle ${genderClass}">
-            ${icon}
-        </div>
-        <div class="person-name">
-            ${person.name}
-        </div>
-    `;
-
+    div.innerHTML = `<div class="circle ${genderClass}">${icon}</div><div class="person-name">${person.name}</div>`;
     canvas.appendChild(div);
 }
 
@@ -140,7 +126,7 @@ function createHeart(x, y) {
     heart.innerHTML = "❤️";
     heart.style.left = x + "px";
     heart.style.top = y + "px";
-    heart.style.zIndex = "11"; // หัวใจอยู่ชั้นหน้าสุด
+    heart.style.zIndex = "11"; 
     canvas.appendChild(heart);
 }
 
@@ -151,6 +137,6 @@ function drawLine(x, y, width, height) {
     line.style.top = y + "px";
     line.style.width = width + "px";
     line.style.height = height + "px";
-    line.style.zIndex = "1"; // เส้นอยู่หลังโหนดบุคคล
+    line.style.zIndex = "1"; 
     canvas.appendChild(line);
 }
