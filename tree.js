@@ -31,9 +31,69 @@ function drawTree(){
             drawn[personId] = true;
         }
     });
+// 3. วาดเส้นเชื่อมโยงความสัมพันธ์ และ ไอคอนหัวใจ ❤️
+if (typeof families !== "undefined") {
+    families.forEach(family => {
+        const fatherPos = layout[family.father];
+        const motherPos = layout[family.mother];
+        const father = people[family.father];
+        const mother = people[family.mother];
 
+        let parentCenterX = 0;
+        let parentCenterY = 0;
+
+        // เช็กว่าฝ่ายชาย หรือ ฝ่ายหญิง มีคู่สมรสหลายคนหรือไม่
+        const fatherHasMultipleSpouses = father ? getSpouses(father).length > 1 : false;
+        const motherHasMultipleSpouses = mother ? getSpouses(mother).length > 1 : false;
+
+        if (fatherPos && motherPos) {
+            // เฉพาะกรณีที่มีคู่หลายคน: ให้เช็กว่าใครเป็นเขย/สะใภ้ (คนที่แต่งเข้าบ้านที่มีหลายคู่)
+            if (fatherHasMultipleSpouses && !motherHasMultipleSpouses) {
+                // ถ้าพ่อมีเมียหลายคน -> ให้เส้นลูกลากออกจากพิกัดของ "แม่" (สะใภ้) โดยตรง
+                parentCenterX = motherPos.x;
+                parentCenterY = motherPos.y;
+            } else if (motherHasMultipleSpouses && !fatherHasMultipleSpouses) {
+                // ถ้าแม่มีผัวหลายคน -> ให้เส้นลูกลากออกจากพิกัดของ "พ่อ" (เขย) โดยตรง
+                parentCenterX = fatherPos.x;
+                parentCenterY = fatherPos.y;
+            } else {
+                // กรณีปกติ (ผัวเดียวเมียเดียว หรือแต่งซ้อนทั้งคู่): ลากออกจากจุดกึ่งกลางระหว่างพ่อแม่ตามเดิม
+                parentCenterX = (fatherPos.x + motherPos.x) / 2;
+                parentCenterY = (fatherPos.y + motherPos.y) / 2;
+            }
+        } else if (fatherPos) {
+            parentCenterX = fatherPos.x;
+            parentCenterY = fatherPos.y;
+        } else if (motherPos) {
+            parentCenterX = motherPos.x;
+            parentCenterY = motherPos.y;
+        }
+
+        // --- ท่อนลากเส้นดิ่งลงมาหาลูกๆ (แบบหักมุมเพื่อหลบโหนดตามที่แนะนำก่อนหน้า) ---
+        if (family.children && parentCenterX !== 0) {
+            family.children.forEach(childId => {
+                const childPos = layout[childId];
+                if (childPos) {
+                    // คำนวณจุดกึ่งกลางแนวตั้งทำเป็นระเบียงทางเดิน
+                    const midY = (parentCenterY + childPos.y) / 2;
+
+                    if (typeof drawLineBetweenPoints === "function") {
+                        drawLineBetweenPoints(parentCenterX, parentCenterY, parentCenterX, midY);
+                        drawLineBetweenPoints(parentCenterX, midY, childPos.x, midY);
+                        drawLineBetweenPoints(childPos.x, midY, childPos.x, childPos.y);
+                    } else {
+                        drawLine(parentCenterX, parentCenterY, 0, midY - parentCenterY); 
+                        drawLine(parentCenterX, midY, childPos.x - parentCenterX, 0);   
+                        drawLine(childPos.x, midY, 0, childPos.y - midY);               
+                    }
+                }
+            });
+        }
+    });
+}
+    
     // 3. วาดเส้นเชื่อมโยงความสัมพันธ์ และ ไอคอนหัวใจ ❤️
-    if (typeof families !== "undefined") {
+   /* if (typeof families !== "undefined") {
         families.forEach(family => {
             const fatherPos = layout[family.father];
             const motherPos = layout[family.mother];
@@ -80,7 +140,7 @@ function drawTree(){
         });
     }
 
-
+*/
     // จัดตำแหน่งมุมมองหน้าจอเริ่มต้น
     offsetX = 50;
     offsetY = 50;
