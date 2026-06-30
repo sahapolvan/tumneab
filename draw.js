@@ -8,43 +8,57 @@ function drawTree() {
 
     buildFamilies();
     buildFamilyLevels();
-    layoutTree(); // ดึงพิกัดจาก layout.js
+    layoutTree(); // ดึงพิกัดแบ่งโซนจาก layout.js
 
-    // 1. ✅ แก้บั๊กหัวใจเกินและซ้อนทับหัวคนถาวร (ฉบับล็อกไอดี ป้องกันผัวเมียสลับกันวาดซ้ำ)
+    // 1. ✅ ปรับปรุงใหม่แบบเนี๊ยบ 100%: วาดหัวใจเฉพาะ "คู่สมรสตัวจริง" ที่นั่งติดกันเท่านั้น (ตัดปัญหาพี่น้องติดหัวใจทิ้งเด็ดขาด)
     const drewHearts = new Set();
     
-    Object.values(people).forEach(person => {
-        const spouseField = person.spouse || person.spoues;
-        if (spouseField) {
-            spouseField.split("|").forEach(sId => {
-                const partnerId = sId.trim();
-                if (!partnerId) return;
+    // แยกกลุ่มคนออกตามระดับแถวแนวตั้ง (แกน Y)
+    const yRows = {};
+    Object.keys(layout).forEach(id => {
+        const pos = layout[id];
+        if (pos) {
+            if (!yRows[pos.y]) yRows[pos.y] = [];
+            yRows[pos.y].push({ id: id, x: pos.x, y: pos.y });
+        }
+    });
 
-                // ✅ ดักจับบั๊กเด็ดขาด: บังคับให้วาดหัวใจเฉพาะตอนที่ไอดีของตัวเอง น้อยกว่า ไอดีคู่สมรสเท่านั้น (person.id < partnerId)
-                // วิธีนี้จะทำให้ ตี๋ เป็นคนวาดหัวใจให้เมียทั้ง 3 คนเองคนเดียวจบ และเมื่อโค้ดวนลูปไปถึง โค้ง, ต้อง, ตั้ม จะโดนสั่งห้ามวาดซ้ำเด็ดขาด!
-                if (Number(person.id) < Number(partnerId)) {
+    // วนลูปตรวจเช็กคนที่นั่งเรียงหน้ากระดานในแถวเดียวกัน
+    Object.keys(yRows).forEach(y => {
+        // จัดคิวเรียงลำดับพิกัดจาก ซ้าย ไป ขวา (ตามพิกัดที่ยืนจริงบนหน้าจอ)
+        const rowPeople = yRows[y].sort((a, b) => a.x - b.x);
+        
+        // จับคู่เฉพาะคนที่นั่งเก้าอี้ติดกันข้าง ๆ กันทีละคู่
+        for (let i = 0; i < rowPeople.length - 1; i++) {
+            const p1 = rowPeople[i];
+            const p2 = rowPeople[i+1];
+            
+            const person1 = people[p1.id];
+            const person2 = people[p2.id];
+            
+            if (person1 && person2) {
+                // ✅ ตรวจสอบความสัมพันธ์อย่างเข้มงวด: 
+                // ต้องมีฝ่ายใดฝ่ายหนึ่งระบุไอดีของอีกฝ่ายในช่องคู่สมรส (spouse) เท่านั้นถึงจะใส่หัวใจให้
+                const isSpouse1 = (person1.spouse || person1.spoues || "").split("|").map(id => id.trim()).includes(p2.id);
+                const isSpouse2 = (person2.spouse || person2.spoues || "").split("|").map(id => id.trim()).includes(p1.id);
+                
+                // หากเช็กแล้วเป็นคู่รักกันจริง และยังไม่เคยถูกวาดหัวใจดวงนี้
+                if ((isSpouse1 || isSpouse2) && !drewHearts.has([p1.id, p2.id].sort().join("-"))) {
                     
-                    const pPos = layout[person.id];
-                    const sPos = layout[partnerId];
+                    // ลากเส้นแนวนอนสั้น ๆ เชื่อมกล่องคู่รัก
+                    drawLine(p1.x, p1.y, p2.x - p1.x, 2);
 
-                    if (pPos && sPos) {
-                        const heartKey = [person.id, partnerId].sort((a, b) => Number(a) - Number(b)).join("-");
-                        
-                        if (!drewHearts.has(heartKey)) {
-                            // ลากเส้นแนวนอนสั้น ๆ เชื่อมระหว่างเก้าอี้คู่รัก
-                            drawLine(pPos.x, pPos.y, sPos.x - pPos.x, 2);
-
-                            // คำนวณจุดกึ่งกลางระหว่างคู่แต่งงานคู่นี้จริง ๆ 
-                            const centerX = (pPos.x + sPos.x) / 2;
-                            const centerY = (pPos.y + sPos.y) / 2;
-                            
-                            // วางหัวใจเหนือกึ่งกลางเส้นแต่งงานพอดีเป๊ะ ไม่ลอยทับหัวใคร
-                            createHeart(centerX - 16, centerY - 45); 
-                            drewHearts.add(heartKey);
-                        }
-                    }
+                    // คำนวณจุดกึ่งกลางระหว่างพิกัด X ของคนที่นั่งติดกันคู่นั้นตรง ๆ
+                    const centerX = (p1.x + p2.x) / 2;
+                    const centerY = (p1.y + p2.y) / 2;
+                    
+                    // ปักหัวใจไว้ตรงกลางช่องไฟว่าง ๆ ระหว่างคู่รักพอดีเป๊ะ ไม่ทับหัวใคร และไม่ขึ้นที่พี่น้อง
+                    createHeart(centerX - 16, centerY - 45); 
+                    
+                    const heartKey = [p1.id, p2.id].sort().join("-");
+                    drewHearts.add(heartKey);
                 }
-            });
+            }
         }
     });
 
@@ -104,7 +118,7 @@ function drawTree() {
     if (typeof resizeCanvas === "function") resizeCanvas();
 }
 
-// ฟังก์ชันสร้างวัตถุกงเดิมเพื่อความปลอดภัย
+// ฟังก์ชันสร้างวัตถุโครงสร้างเลเยอร์คงเดิมเพื่อความปลอดภัย
 function createPerson(person, x, y) {
     const div = document.createElement("div");
     div.className = "person";
@@ -139,4 +153,3 @@ function drawLine(x, y, width, height) {
     line.style.zIndex = "1"; 
     canvas.appendChild(line);
 }
-
