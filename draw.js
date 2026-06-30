@@ -9,8 +9,43 @@ function drawTree() {
     buildFamilies();
     buildFamilyLevels();
     layoutTree(); // ดึงพิกัดจัดโซนสมดุลจาก layout.js
-
+// 🎯 มองหาท่อนวาดคู่สมรสใน draw.js แล้วปรับตามนี้ครับ:
 const drewHearts = new Set();
+Object.values(people).forEach(person => {
+    const spouseField = person.spouse || person.spoues;
+    if (spouseField) {
+        spouseField.split("|").forEach(sId => {
+            const partnerId = sId.trim();
+            if (!partnerId) return;
+
+            const pPos = layout[person.id];
+            const sPos = layout[partnerId];
+
+            if (pPos && sPos) {
+                // ✅ แก้ไขจุดนี้: แปลงไอดีให้เป็นตัวเลขจริง ๆ ก่อนทำการจัดลำดับ (sort)
+                // วิธีนี้จะทำให้รหัสคู่รักแม่นยำ 100% ไม่ว่าจะเป็นผัวหรือเมีย ก็จะได้รหัสเหมือนกันเป๊ะ
+                const id1 = Number(person.id);
+                const id2 = Number(partnerId);
+                const heartKey = [id1, id2].sort((a, b) => a - b).join("-");
+                
+                if (!drewHearts.has(heartKey)) {
+                    // ลากเส้นแนวนอนบาง ๆ เชื่อมคู่รัก
+                    drawLine(pPos.x, pPos.y, sPos.x - pPos.x, 2);
+
+                    // คำนวณจุดกึ่งกลางระหว่างคู่สมรสคู่นี้
+                    const centerX = (pPos.x + sPos.x) / 2;
+                    const centerY = (pPos.y + sPos.y) / 2;
+                    
+                    // วางหัวใจเหนือกึ่งกลางเส้นแต่งงานพอดีเป๊ะ
+                    createHeart(centerX - 16, centerY - 45); 
+                    drewHearts.add(heartKey);
+                }
+            }
+        });
+    }
+});
+    
+/*const drewHearts = new Set();
     
     Object.values(people).forEach(person => {
         const spouseField = person.spouse || person.spoues;
@@ -41,7 +76,7 @@ const drewHearts = new Set();
                 }
             }
         }
-    });
+    }); */
 
     // 2. ✅ แก้ไขใหม่: ล็อกระยะหักเลี้ยวแนวตั้ง (dropY) ให้สั้นกระชับและยาวเท่ากันเป๊ะ 80px ทุกรุ่นตระกูล
     Object.values(people).forEach(child => {
