@@ -9,41 +9,45 @@ function drawTree() {
     buildFamilies();
     buildFamilyLevels();
     layoutTree(); // ดึงพิกัดจัดโซนสมดุลจาก layout.js
-// 🎯 มองหาท่อนวาดคู่สมรสใน draw.js แล้วปรับตามนี้ครับ:
-const drewHearts = new Set();
-Object.values(people).forEach(person => {
-    const spouseField = person.spouse || person.spoues;
-    if (spouseField) {
-        spouseField.split("|").forEach(sId => {
-            const partnerId = sId.trim();
-            if (!partnerId) return;
-
-            const pPos = layout[person.id];
-            const sPos = layout[partnerId];
-
-            if (pPos && sPos) {
-                // ✅ แก้ไขจุดนี้: แปลงไอดีให้เป็นตัวเลขจริง ๆ ก่อนทำการจัดลำดับ (sort)
-                // วิธีนี้จะทำให้รหัสคู่รักแม่นยำ 100% ไม่ว่าจะเป็นผัวหรือเมีย ก็จะได้รหัสเหมือนกันเป๊ะ
-                const id1 = Number(person.id);
-                const id2 = Number(partnerId);
-                const heartKey = [id1, id2].sort((a, b) => a - b).join("-");
+    
+    // 1. ✅ แก้บั๊กหัวใจเกินและซ้อนทับหัวคนถาวร (ฉบับนับคู่เก้าอี้ติดกันจริงในแถว)
+    const drewHearts = new Set();
+    
+    Object.values(people).forEach(person => {
+        const spouseField = person.spouse || person.spoues;
+        if (spouseField) {
+            // มัดรวมไอดีของสามีและภรรยาทุกคนในบ้านนี้มาใส่อาร์เรย์ (เช่น)
+            const allPartnersInFamily = [person.id, ...spouseField.split("|").map(id => id.trim())].filter(Boolean);
+            
+            // วนลูปจับคู่เฉพาะคนที่ยืนอยู่เก้าอี้ข้างกันขวา-ซ้ายจริง ๆ บนหน้าจอเพื่อติดหัวใจคั่นกลาง
+            for (let i = 0; i < allPartnersInFamily.length - 1; i++) {
+                const currentId = allPartnersInFamily[i];
+                const nextId = allPartnersInFamily[i+1];
                 
-                if (!drewHearts.has(heartKey)) {
-                    // ลากเส้นแนวนอนบาง ๆ เชื่อมคู่รัก
-                    drawLine(pPos.x, pPos.y, sPos.x - pPos.x, 2);
+                const pos1 = layout[currentId];
+                const pos2 = layout[nextId];
 
-                    // คำนวณจุดกึ่งกลางระหว่างคู่สมรสคู่นี้
-                    const centerX = (pPos.x + sPos.x) / 2;
-                    const centerY = (pPos.y + sPos.y) / 2;
+                if (pos1 && pos2) {
+                    // สร้างรหัสคู่รักดักจับการวาดซ้ำสากล
+                    const heartKey = [currentId, nextId].sort((a, b) => Number(a) - Number(b)).join("-");
                     
-                    // วางหัวใจเหนือกึ่งกลางเส้นแต่งงานพอดีเป๊ะ
-                    createHeart(centerX - 16, centerY - 45); 
-                    drewHearts.add(heartKey);
+                    if (!drewHearts.has(heartKey)) {
+                        // ลากเส้นแนวนอนสั้น ๆ เชื่อมระหว่างเก้าอี้คู่ที่ยืนติดกัน
+                        drawLine(pos1.x, pos1.y, pos2.x - pos1.x, 2);
+
+                        // ✅ แก้บั๊กสำเร็จ: คำนวณจุดกึ่งกลางระหว่าง 2 คนที่ยืนติดกันนั้นตรง ๆ (ไม่ใช่ดึงจากตัวหลัก)
+                        // หัวใจของบ้านแม้วและบ้านตี๋จะขยับไปอยู่ตรงช่องว่างระหว่างคนพอดี ไม่บินกลับมาทับหัวใครแล้วครับน้า
+                        const centerX = (pos1.x + pos2.x) / 2;
+                        const centerY = (pos1.y + pos2.y) / 2;
+                        
+                        createHeart(centerX - 16, centerY - 45); 
+                        drewHearts.add(heartKey);
+                    }
                 }
             }
-        });
-    }
-});
+        }
+    });
+
     
 /*const drewHearts = new Set();
     
