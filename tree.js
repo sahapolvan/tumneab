@@ -41,17 +41,21 @@ function drawTree(){
             let parentCenterX = 0;
             let parentCenterY = 0;
 
-            // กรณีมีคู่สมรส (มีทั้งพ่อและแม่) -> ลากเส้นแต่งงานและใส่หัวใจตรงกลาง
+    // 3. วาดเส้นเชื่อมโยงความสัมพันธ์ และ ไอคอนหัวใจ ❤️
+    if (typeof families !== "undefined") {
+        families.forEach(family => {
+            const fatherPos = layout[family.father];
+            const motherPos = layout[family.mother];
+
+            let parentCenterX = 0;
+            let parentCenterY = 0;
+
+            // ❌ ลบหรือปิดตรรกะวาดเส้นแต่งงานและ createHeart ตรงนี้ออกไปเลยครับน้า
+            // ❌ เพราะ draw.js มันจัดการวาดให้ครบและตรงคู่สมบูรณ์แบบอยู่แล้ว
             if (fatherPos && motherPos) {
-                if (typeof drawLineBetweenPoints === "function") {
-                    drawLineBetweenPoints(fatherPos.x, fatherPos.y, motherPos.x, motherPos.y);
-                } else {
-                    drawLine(fatherPos.x, fatherPos.y, motherPos.x - fatherPos.x, 2);
-                }
-                
                 parentCenterX = (fatherPos.x + motherPos.x) / 2;
                 parentCenterY = (fatherPos.y + motherPos.y) / 2;
-                createHeart(parentCenterX - 16, parentCenterY - 45); // ปรับตำแหน่งหัวใจให้อยู่ระหว่างคู่รัก
+                // createHeart(parentCenterX - 16, parentCenterY - 45); // 👈 ลบหรือปิดบรรทัดนี้ทิ้งเด็ดขาด
             } else if (fatherPos) {
                 parentCenterX = fatherPos.x;
                 parentCenterY = fatherPos.y;
@@ -60,13 +64,12 @@ function drawTree(){
                 parentCenterY = motherPos.y;
             }
 
-            // ลากเส้นจากจุดกึ่งกลางพ่อแม่ ดิ่งลงไปหาลูกๆ ทุกคนในครอบครัวนั้น
+            // คงท่อนลากเส้นดิ่งลงมาหาลูกๆ นี้ไว้ใน tree.js ตามเดิม (หรือถ้า draw.js มีท่อนนี้แล้วก็ปิดได้ครับ)
             if (family.children && parentCenterX !== 0) {
                 family.children.forEach(childId => {
                     const childPos = layout[childId];
                     if (childPos) {
                         if (typeof drawLineBetweenPoints === "function") {
-                            // ลากเส้นตรงจากจุดเชื่อมโยงพ่อแม่ไปยังลูกแต่ละคน
                             drawLineBetweenPoints(parentCenterX, parentCenterY, childPos.x, childPos.y);
                         } else {
                             drawLine(parentCenterX, parentCenterY, childPos.x - parentCenterX, childPos.y - parentCenterY);
@@ -76,6 +79,7 @@ function drawTree(){
             }
         });
     }
+
 
     // จัดตำแหน่งมุมมองหน้าจอเริ่มต้น
     offsetX = 50;
