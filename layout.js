@@ -79,7 +79,7 @@ function layoutTree() {
         const person = people[personId];
         if (!person) return;
 
-        const currentY = level * LEVEL_HEIGHT + 100;
+        const currentY = level * LEVEL_HEIGHT + 30;
         const totalZoneWidth = subtreeWidths[personId] || NODE_WIDTH;
 
         // วางกล่องตัวหลักให้อยู่กึ่งกลางโซนบ้านตัวเอง
