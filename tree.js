@@ -31,6 +31,7 @@ function drawTree(){
             drawn[personId] = true;
         }
     });
+    /*
 // 3. วาดเส้นเชื่อมโยงความสัมพันธ์ และ ไอคอนหัวใจ ❤️
 if (typeof families !== "undefined") {
     families.forEach(family => {
@@ -91,9 +92,9 @@ if (typeof families !== "undefined") {
         }
     });
 }
-    
+ */   
     // 3. วาดเส้นเชื่อมโยงความสัมพันธ์ และ ไอคอนหัวใจ ❤️
-   /* if (typeof families !== "undefined") {
+    if (typeof families !== "undefined") {
         families.forEach(family => {
             const fatherPos = layout[family.father];
             const motherPos = layout[family.mother];
@@ -139,8 +140,6 @@ if (typeof families !== "undefined") {
             }
         });
     }
-
-*/
     // จัดตำแหน่งมุมมองหน้าจอเริ่มต้น
     offsetX = 50;
     offsetY = 50;
