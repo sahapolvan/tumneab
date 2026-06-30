@@ -140,8 +140,8 @@ function layoutTree() {
         });
         const rootCenterX = childrenCount > 0 ? childrenXSum / childrenCount : 800;
         
-        layout["1"] = { x: rootCenterX - 75, y: 150 };
-        layout["2"] = { x: rootCenterX + 75, y: 150 };
+        layout["1"] = { x: rootCenterX - 75, y: 145 };
+        layout["2"] = { x: rootCenterX + 75, y: 145 };
     }
 
     // เก็บตกคนโสด
