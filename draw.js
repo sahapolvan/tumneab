@@ -10,46 +10,33 @@ function drawTree() {
     buildFamilyLevels();
     layoutTree(); // ดึงพิกัดจัดโซนสมดุลจาก layout.js
 
-    // 1. วาดเส้นคู่สมรสแนวนอน และใส่หัวใจ ❤️ (✅ แก้ไขใหม่: คำนวณหาคู่ที่นั่งติดกันจริง ๆ)
-       const drewHearts = new Set();
+const drewHearts = new Set();
     
     Object.values(people).forEach(person => {
         const spouseField = person.spouse || person.spoues;
         if (spouseField) {
-            // ดึงรายชื่อคู่สมรสทั้งหมดของคนนี้ออกมา
-            const partnerIds = spouseField.split("|").map(id => id.trim()).filter(Boolean);
-            const posMain = layout[person.id]; 
+            // สร้างอาร์เรย์เก็บไอดีของครอบครัวนี้ (รวมตัวหลักและเมียทุกคน) เพื่อหาคู่ที่นั่งเรียงติดกันในแถว
+            const partnerIds = [person.id, ...spouseField.split("|").map(id => id.trim())].filter(Boolean);
+            
+            // วนลูปจับคู่คนที่นั่งอยู่เก้าอี้ติดกันข้าง ๆ กันทีละคู่ เพื่อวาดเส้นและติดหัวใจให้ตรงคู่
+            for (let i = 0; i < partnerIds.length - 1; i++) {
+                const id1 = partnerIds[i];
+                const id2 = partnerIds[i+1];
+                
+                const pos1 = layout[id1];
+                const pos2 = layout[id2];
 
-            if (posMain) {
-                // วนลูปวาดเส้นและหัวใจตรงจากตัวหลักไปยังคู่สมรสทุกคน (รองรับทั้งแม้วและตี๋ที่เป็น LGBT)
-                for (let i = 0; i < partnerIds.length; i++) {
-                    const spouseId = partnerIds[i];
-                    const posSpouse = layout[spouseId];
+                if (pos1 && pos2) {
+                    const heartKey = [id1, id2].sort().join("-");
+                    if (!drewHearts.has(heartKey)) {
+                        // ลากเส้นแนวนอนสั้น ๆ ระหว่างคู่รักที่อยู่ติดกัน
+                        drawLine(pos1.x, pos1.y, pos2.x - pos1.x, 2);
 
-                    if (posSpouse) {
-                        const heartKey = [person.id, spouseId].sort().join("-");
-                        
-                        if (!drewHearts.has(heartKey)) {
-                            // 1. หาจุดเริ่มต้นและจุดสิ้นสุดบนแกน X ของคู่รักคู่นี้
-                            const startX = Math.min(posMain.x, posSpouse.x);
-                            const endX = Math.max(posMain.x, posSpouse.x);
-                            
-                            // 2. ดึงให้เส้นแต่งงานแนวนอน ขยับลงมาอยู่ "ใต้กรอบวงกลม" พอดี เพื่อไม่ให้เส้นตัดผ่านหน้า
-                            // (ปรับตัวเลข + 40 หรือ + 50 ตามระยะความสูงของโหนดวงกลมคุณได้เลยครับ)
-                            const marriageLineY = posMain.y + 45; 
-
-                            // ลากเส้นแนวนอนเชื่อมความสัมพันธ์ระหว่างคู่รัก
-                            drawLine(startX + 35, marriageLineY, (endX - startX), 2);
-
-                            // 3. คำนวณจุดกึ่งกลางแกน X ระหว่างโหนดทั้งสอง
-                            const centerX = (posMain.x + posSpouse.x) / 2;
-                            
-                            // ✅ แก้บั๊กหัวใจทับหัวถาวร: วางไอคอนหัวใจให้อยู่กึ่งกลางคานเส้นแต่งงาน marriageLineY พอดี
-                            // ไม่ใช้ค่า pos.y ของตัวคนมาเฉลี่ยอีกต่อไป หัวใจจะไม่ลอยขึ้นไปทับหัวใครแน่นอน
-                            createHeart(centerX - 16, marriageLineY - 15); 
-                            
-                            drewHearts.add(heartKey);
-                        }
+                        // ✅ แก้บั๊กหัวใจซ้อนถาวร: หาจุดกึ่งกลางระหว่าง 2 โหนดที่นั่งติดกันนั้นตรง ๆ
+                        const centerX = (pos1.x + pos2.x) / 2;
+                        const centerY = (pos1.y + pos2.y) / 2;
+                        createHeart(centerX - 16, centerY - 45); 
+                        drewHearts.add(heartKey);
                     }
                 }
             }
