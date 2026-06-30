@@ -13,32 +13,33 @@ function drawTree() {
     // 1. วาดเส้นคู่สมรสแนวนอน และใส่หัวใจ ❤️ (✅ แก้ไขใหม่: คำนวณหาคู่ที่นั่งติดกันจริง ๆ)
     const drewHearts = new Set();
     
-    Object.values(people).forEach(person => {
-        const spouseField = person.spouse || person.spoues;
-        if (spouseField) {
-            // สร้างอาร์เรย์เก็บไอดีของครอบครัวนี้ (รวมตัวหลักและเมียทุกคน) เพื่อหาคู่ที่นั่งเรียงติดกันในแถว
-            const partnerIds = [person.id, ...spouseField.split("|").map(id => id.trim())].filter(Boolean);
-            
-            // วนลูปจับคู่คนที่นั่งอยู่เก้าอี้ติดกันข้าง ๆ กันทีละคู่ เพื่อวาดเส้นและติดหัวใจให้ตรงคู่
-            for (let i = 0; i < partnerIds.length - 1; i++) {
-                const id1 = partnerIds[i];
-                const id2 = partnerIds[i+1];
+    // ✅ เปลี่ยนมาวนลูปจากข้อมูลครอบครัว (families) โดยตรง เพื่อวาดหัวใจเฉพาะคู่แต่งงานจริง ๆ
+    families.forEach(family => {
+        const fatherId = family.father;
+        const motherId = family.mother;
+        
+        if (fatherId && motherId) {
+            const pos1 = layout[fatherId];
+            const pos2 = layout[motherId];
+
+            if (pos1 && pos2) {
+                // สร้าง Key เพื่อไม่ให้วาดซ้ำ
+                const heartKey = [fatherId, motherId].sort().join("-");
                 
-                const pos1 = layout[id1];
-                const pos2 = layout[id2];
+                if (!drewHearts.has(heartKey)) {
+                    // ลากเส้นแนวนอนสั้น ๆ ระหว่างคู่รัก
+                    // เช็กเพื่อให้ลากจากซ้ายไปขวาเสมอ ไม่ว่าพ่อหรือแม่จะอยู่ซ้าย
+                    const startX = Math.min(pos1.x, pos2.x);
+                    const endX = Math.max(pos1.x, pos2.x);
+                    drawLine(startX, pos1.y, endX - startX, 2);
 
-                if (pos1 && pos2) {
-                    const heartKey = [id1, id2].sort().join("-");
-                    if (!drewHearts.has(heartKey)) {
-                        // ลากเส้นแนวนอนสั้น ๆ ระหว่างคู่รักที่อยู่ติดกัน
-                        drawLine(pos1.x, pos1.y, pos2.x - pos1.x, 2);
-
-                        // ✅ แก้บั๊กหัวใจซ้อนถาวร: หาจุดกึ่งกลางระหว่าง 2 โหนดที่นั่งติดกันนั้นตรง ๆ
-                        const centerX = (pos1.x + pos2.x) / 2;
-                        const centerY = (pos1.y + pos2.y) / 2;
-                        createHeart(centerX - 16, centerY - 45); 
-                        drewHearts.add(heartKey);
-                    }
+                    // หาจุดกึ่งกลางระหว่างพ่อและแม่ที่แต่งงานกันจริง ๆ
+                    const centerX = (pos1.x + pos2.x) / 2;
+                    const centerY = (pos1.y + pos2.y) / 2;
+                    
+                    // วาดรูปหัวใจตรงจุดกึ่งกลางของคู่สมรสคู่นั้น
+                    createHeart(centerX - 16, centerY - 45); 
+                    drewHearts.add(heartKey);
                 }
             }
         }
