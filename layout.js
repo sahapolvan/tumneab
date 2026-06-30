@@ -1,5 +1,5 @@
 const NODE_WIDTH = 140;    // ช่องไฟแนวขนานระหว่างบุคคลแต่ละคน
-const LEVEL_HEIGHT = 150;  // ระยะห่างแนวตั้งระหว่างรุ่น
+const LEVEL_HEIGHT = 190;  // ระยะห่างแนวตั้งระหว่างรุ่น
 
 let layout = {};
 
@@ -140,8 +140,8 @@ function layoutTree() {
         });
         const rootCenterX = childrenCount > 0 ? childrenXSum / childrenCount : 800;
         
-        layout["1"] = { x: rootCenterX - 75, y: 100 };
-        layout["2"] = { x: rootCenterX + 75, y: 100 };
+        layout["1"] = { x: rootCenterX - 75, y: 150 };
+        layout["2"] = { x: rootCenterX + 75, y: 150 };
     }
 
     // เก็บตกคนโสด
